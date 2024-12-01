@@ -7,16 +7,20 @@
 
 import SwiftUI
 import ComposableArchitecture
-
 struct ContentView: View {
     let store: StoreOf<MultiVideoPlayer>
 
     init() {
-        // サンプルビデオURL（実際のURLに置き換えてください）
-        let sampleURLs = [
-            URL(string: "https://example.com/video1.mp4")!,
-            URL(string: "https://example.com/video2.mp4")!
-        ]
+        // Bundle内の動画ファイルのURLを取得
+        let videoNames = ["video1", "video2"] // プロジェクトに追加した動画ファイル名
+        let sampleURLs = videoNames.compactMap { name in
+            Bundle.main.url(forResource: name, withExtension: "mp4")
+        }
+
+        // バンドルに動画がない場合のフォールバック処理
+        if sampleURLs.isEmpty {
+            fatalError("動画ファイルがプロジェクトに追加されていません。")
+        }
 
         // ストアの初期化
         self.store = Store(
@@ -37,10 +41,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            MultiVideoPlayerView(store: store)
-                .navigationTitle("Video Player")
-        }
+        MultiVideoPlayerView(store: store)
+            .navigationTitle("Video Player")
+
     }
 }
 
