@@ -7,6 +7,8 @@
 
 import SwiftUI
 import ComposableArchitecture
+
+
 struct ContentView: View {
     let store: StoreOf<MultiVideoPlayer>
 
@@ -41,9 +43,10 @@ struct ContentView: View {
     }
 
     var body: some View {
-        MultiVideoPlayerView(store: store)
-            .navigationTitle("Video Player")
-
+        NavigationStack {
+            MultiVideoPlayerView(store: store)
+                .navigationTitle("Video Player")
+        }
     }
 }
 
