@@ -43,10 +43,12 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            MultiVideoPlayerView(store: store)
-                .navigationTitle("Video Player")
-        }
+        VideoPlayerListView(
+            store: Store(
+                initialState: VideoPlayerList.State(),
+                reducer: { VideoPlayerList()._printChanges() }
+            )
+        )
     }
 }
 

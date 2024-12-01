@@ -14,80 +14,58 @@ struct CoreDataClient {
 }
 
 // CoreDataクライアントの実装
-extension CoreDataClient {
-    static let live = Self(
+extension CoreDataClient: DependencyKey {
+    static let liveValue = CoreDataClient(
         fetchVideos: {
-            try await withCheckedThrowingContinuation { continuation in
-                let context = PersistenceController.shared.container.viewContext
-                let request = NSFetchRequest<SavedVideo>(entityName: "SavedVideo")
-                request.sortDescriptors = [NSSortDescriptor(keyPath: \SavedVideo.createdAt, ascending: false)]
+            let context = PersistenceController.shared.container.viewContext
+            let request = NSFetchRequest<SavedVideo>(entityName: "SavedVideo")
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \SavedVideo.createdAt, ascending: false)]
 
-                context.perform {
-                    do {
-                        let savedVideos = try context.fetch(request)
-                        let models = savedVideos.compactMap { video -> SavedVideoEntity? in
-                            guard let id = video.id,
-                                  let url = video.url,
-                                  let title = video.title,
-                                  let createdAt = video.createdAt else {
-                                return nil
-                            }
-
-                            return SavedVideoEntity(
-                                id: id,
-                                url: url,
-                                title: title,
-                                duration: video.duration,
-                                createdAt: createdAt
-                            )
-                        }
-                        continuation.resume(returning: models)
-                    } catch {
-                        continuation.resume(throwing: error)
+            return try await context.perform {
+                let savedVideos = try context.fetch(request)
+                return savedVideos.compactMap { video -> SavedVideoEntity? in
+                    guard let id = video.id,
+                          let url = video.url,
+                          let title = video.title,
+                          let createdAt = video.createdAt else {
+                        return nil
                     }
+
+                    return SavedVideoEntity(
+                        id: id,
+                        url: url,
+                        title: title,
+                        duration: video.duration,
+                        createdAt: createdAt
+                    )
                 }
             }
         },
-
         saveVideo: { url, title, duration in
-            try await withCheckedThrowingContinuation { continuation in
-                let context = PersistenceController.shared.container.viewContext
+            let context = PersistenceController.shared.container.viewContext
 
-                context.perform {
-                    let video = SavedVideo(context: context)
-                    video.id = UUID()
-                    video.url = url
-                    video.title = title
-                    video.duration = duration
-                    video.createdAt = Date()
+            try await context.perform {
+                let video = SavedVideo(context: context)
+                video.id = UUID()
+                video.url = url
+                video.title = title
+                video.duration = duration
+                video.createdAt = Date()
 
-                    do {
-                        try context.save()
-                        continuation.resume()
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
-                }
+                try context.save()
             }
         },
-
         deleteVideo: { id in
-            try await withCheckedThrowingContinuation { continuation in
-                let context = PersistenceController.shared.container.viewContext
+            let context = PersistenceController.shared.container.viewContext
+
+            try await context.perform {
                 let request = NSFetchRequest<SavedVideo>(entityName: "SavedVideo")
                 request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
 
-                context.perform {
-                    do {
-                        let videos = try context.fetch(request)
-                        if let video = videos.first {
-                            context.delete(video)
-                            try context.save()
-                        }
-                        continuation.resume()
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+                let videos = try context.fetch(request)
+                if let video = videos.first {
+                    context.delete(video)
+                    try context.save()
                 }
             }
         }

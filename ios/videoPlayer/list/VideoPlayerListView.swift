@@ -24,7 +24,7 @@ struct VideoPlayerListView: View {
                                     VideoPlayerView(
                                         store: Store(
                                             initialState: VideoPlayer.State(
-                                                url: video.url
+                                                id: UUID(), url: video.url
                                             ),
                                             reducer: { VideoPlayer() }
                                         )
