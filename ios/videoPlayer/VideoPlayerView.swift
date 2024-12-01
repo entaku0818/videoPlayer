@@ -45,29 +45,6 @@ struct VideoPlayerView: View {
             )
             .frame(height: 200)
 
-            VStack(spacing: 12) {
-
-                // 音量スライダー
-                HStack {
-                    Image(systemName: "speaker.wave.1")
-                        .foregroundColor(.gray)
-
-                    Slider(
-                        value: viewStore.binding(
-                            get: \.volume,
-                            send: VideoPlayer.Action.setVolume
-                        ),
-                        in: 0...1
-                    )
-                    .onChange(of: viewStore.volume) { newValue in
-                        player.volume = Float(newValue)
-                    }
-
-                    Image(systemName: "speaker.wave.3")
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding(.horizontal)
         }
         .padding(.vertical)
     }

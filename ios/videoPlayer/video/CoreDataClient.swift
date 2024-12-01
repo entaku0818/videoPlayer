@@ -1,11 +1,12 @@
 //
-//  a.swift
+//  CoreDataClient.swift
 //  videoPlayer
 //
 //  Created by 遠藤拓弥 on 2024/12/01.
 //
 
 import CoreData
+import Dependencies
 struct CoreDataClient {
     var fetchVideos: () async throws -> [SavedVideoEntity]
     var saveVideo: (URL, String, Double) async throws -> Void
@@ -91,4 +92,25 @@ extension CoreDataClient {
             }
         }
     )
+}
+
+extension CoreDataClient:TestDependencyKey {
+    static let previewValue = Self(
+        fetchVideos: { [] },
+        saveVideo: { _, _, _ in },
+        deleteVideo: { _ in }
+    )
+
+    static let testValue = Self(
+        fetchVideos: { [] },
+        saveVideo: { _, _, _ in },
+        deleteVideo: { _ in }
+    )
+}
+
+extension DependencyValues {
+    var coreDataClient: CoreDataClient {
+        get { self[CoreDataClient.self] }
+        set { self[CoreDataClient.self] = newValue }
+    }
 }
