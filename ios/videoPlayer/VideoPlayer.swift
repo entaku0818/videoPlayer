@@ -10,7 +10,7 @@ import ComposableArchitecture
 struct VideoPlayer: Reducer {
     struct State: Equatable, Identifiable {
         let id: UUID
-        var url: URL
+        var fileName: String
         var isPlaying: Bool = false
         var duration: Double = 0
         var volume: Double = 1.0

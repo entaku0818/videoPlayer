@@ -25,7 +25,7 @@ struct VideoPlayerListView: View {
                                     VideoPlayerView(
                                         store: Store(
                                             initialState: VideoPlayer.State(
-                                                id: UUID(), url: video.url
+                                                id: video.id, fileName: video.fileName
                                             ),
                                             reducer: { VideoPlayer() }
                                         )
@@ -114,8 +114,13 @@ struct VideoRowView: View {
 
     var body: some View {
         HStack {
-            VideoThumbnail(url: video.url)
-
+            if let url = video.fileName.documentDirectoryURL() {
+                VideoThumbnail(url: url)
+            } else {
+                Rectangle()
+                    .fill(Color.gray)
+                    .frame(width: 120, height: 80)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(video.title)
                     .font(.headline)
@@ -143,5 +148,15 @@ struct VideoRowView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+
+extension String {
+    func documentDirectoryURL() -> URL? {
+        guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return documentsURL.appendingPathComponent(self)
     }
 }

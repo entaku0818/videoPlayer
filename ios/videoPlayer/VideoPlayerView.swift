@@ -17,7 +17,11 @@ struct VideoPlayerView: View {
     init(store: StoreOf<VideoPlayer>) {
         self.store = store
         let viewStore = ViewStore(store, observe: { $0 })
-        self.player = AVPlayer(url: viewStore.url)        
+        if let url = viewStore.fileName.documentDirectoryURL() {
+            self.player = AVPlayer(url: url)
+        } else {
+            fatalError("Invalid video URL: \(viewStore.fileName)")
+        }       
         self.viewStore = viewStore
 
         // プレイヤーの初期音量を設定

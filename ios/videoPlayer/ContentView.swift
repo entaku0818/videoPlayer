@@ -58,7 +58,7 @@ struct ContentView: View {
                     uniqueElements: sampleURLs.map { url in
                         VideoPlayer.State(
                             id: UUID(),
-                            url: url
+                            fileName: url.lastPathComponent
                         )
                     }
                 )

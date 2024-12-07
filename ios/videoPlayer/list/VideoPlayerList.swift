@@ -16,7 +16,7 @@ struct VideoPlayerList: Reducer {
 
         struct VideoModel: Equatable, Identifiable {
             let id: UUID
-            let url: URL
+            let fileName: String
             let title: String
             let duration: Double
             let createdAt: Date
@@ -52,7 +52,7 @@ struct VideoPlayerList: Reducer {
                     uniqueElements: videos.map {
                         State.VideoModel(
                             id: $0.id,
-                            url: $0.url,
+                            fileName: $0.fileName,
                             title: $0.title,
                             duration: $0.duration,
                             createdAt: $0.createdAt

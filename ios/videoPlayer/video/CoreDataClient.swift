@@ -23,9 +23,10 @@ extension CoreDataClient: DependencyKey {
 
             return try await context.perform {
                 let savedVideos = try context.fetch(request)
+
                 return savedVideos.compactMap { video -> SavedVideoEntity? in
                     guard let id = video.id,
-                          let url = video.url,
+                          let fileName = video.fileName,
                           let title = video.title,
                           let createdAt = video.createdAt else {
                         return nil
@@ -33,7 +34,7 @@ extension CoreDataClient: DependencyKey {
 
                     return SavedVideoEntity(
                         id: id,
-                        url: url,
+                        fileName: fileName,
                         title: title,
                         duration: video.duration,
                         createdAt: createdAt
@@ -47,7 +48,7 @@ extension CoreDataClient: DependencyKey {
             try await context.perform {
                 let video = SavedVideo(context: context)
                 video.id = UUID()
-                video.url = url
+                video.fileName = url.lastPathComponent
                 video.title = title
                 video.duration = duration
                 video.createdAt = Date()
