@@ -27,6 +27,7 @@ struct VideoPlayerList: Reducer {
         case onAppear
         case videosLoaded(TaskResult<[SavedVideoEntity]>)
         case toggleVideoPicker
+        case cancelVideoPicker
         case videoSelected(URL, String, Double)
         case videoSaved(TaskResult<Void>)
         case deleteVideo(State.VideoModel)
@@ -69,7 +70,9 @@ struct VideoPlayerList: Reducer {
             case .toggleVideoPicker:
                 state.isShowingVideoPicker.toggle()
                 return .none
-
+            case .cancelVideoPicker:
+                state.isShowingVideoPicker = false
+                return .none
             case let .videoSelected(url, title, duration):
                 return .run { send in
                     await send(.videoSaved(

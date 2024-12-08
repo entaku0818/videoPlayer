@@ -54,10 +54,7 @@ struct VideoPlayerListView: View {
                     }
                 }
                 .sheet(
-                    isPresented: viewStore.binding(
-                        get: \.isShowingVideoPicker,
-                        send: .toggleVideoPicker
-                    )
+                    isPresented: .constant(viewStore.isShowingVideoPicker)
                 ) {
                     VideoPicker(store: store)
                 }

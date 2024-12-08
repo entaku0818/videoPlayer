@@ -42,7 +42,7 @@ struct VideoPicker: UIViewControllerRepresentable {
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             if results.isEmpty {
-                ViewStore(store, observe: { $0 }).send(.toggleVideoPicker)
+                ViewStore(store, observe: { $0 }).send(.cancelVideoPicker)
                 return
             }
 
