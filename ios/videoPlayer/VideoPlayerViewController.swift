@@ -10,7 +10,6 @@ import SwiftUI
 import AVKit
 import OSLog
 
-
 class VideoPlayerViewController: AVPlayerViewController {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "VideoPlayer", category: "VideoPlayerViewController")
     private let controlsContainer = UIView()
@@ -20,6 +19,10 @@ class VideoPlayerViewController: AVPlayerViewController {
     private let currentTimeLabel = UILabel()
     private let durationLabel = UILabel()
     private let bottomControlsContainer = UIView()
+    private let speedButton = UIButton(type: .system)
+    private let speedMenu: UIMenu
+    private let availableSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    private var currentSpeedIndex = 2 // デフォルトは1.0倍
 
     private var isControlsVisible = true {
         didSet {
@@ -41,6 +44,7 @@ class VideoPlayerViewController: AVPlayerViewController {
                 onPlay()
                 updatePlayPauseButton()
                 startControlsAutoHideTimer()
+                player?.rate = Float(availableSpeeds[currentSpeedIndex])
             } else {
                 player?.pause()
                 onPause()
@@ -54,14 +58,68 @@ class VideoPlayerViewController: AVPlayerViewController {
     private let controlsAutoHideInterval: TimeInterval = 3.0
 
     init(player: AVPlayer) {
+        speedMenu = UIMenu(title: "再生速度", children: [])
+
         super.init(nibName: nil, bundle: nil)
         self.player = player
+
+        setupSpeedMenu()
         setupPlayer()
         setupCustomControls()
     }
 
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .landscape
+    }
+
+    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
+        return .landscapeRight
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            return
+        }
+
+        let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: .landscape)
+
+        DispatchQueue.main.async { [weak self] in
+            // 親ビューコントローラーも含めて更新
+            self?.navigationController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            self?.tabBarController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            self?.setNeedsUpdateOfSupportedInterfaceOrientations()
+
+            windowScene.requestGeometryUpdate(geometryPreferences) { error in
+                print("Orientation error: \(error)")
+
+            }
+
+            // 回転を即時反映
+            UIViewController.attemptRotationToDeviceOrientation()
+        }
+    }
+    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupSpeedMenu() {
+        var menuItems: [UIAction] = []
+
+        for (index, speed) in availableSpeeds.enumerated() {
+            let action = UIAction(
+                title: "\(speed)x",
+                state: index == currentSpeedIndex ? .on : .off
+            ) { [weak self] _ in
+                self?.changePlaybackSpeed(toIndex: index)
+            }
+            menuItems.append(action)
+        }
+
+        speedButton.menu = UIMenu(title: "再生速度", children: menuItems)
+        speedButton.showsMenuAsPrimaryAction = true
     }
 
     private func setupPlayer() {
@@ -134,6 +192,14 @@ class VideoPlayerViewController: AVPlayerViewController {
             label.font = .systemFont(ofSize: 12)
         }
 
+        // スピードボタンの設定
+        speedButton.translatesAutoresizingMaskIntoConstraints = false
+        speedButton.tintColor = .white
+        speedButton.setTitle("1.0x", for: .normal)
+        speedButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        speedButton.layer.cornerRadius = 15
+        speedButton.contentEdgeInsets = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
+
         // ビューの追加
         controlsContainer.addSubview(buttonBackground)
         controlsContainer.addSubview(playPauseButton)
@@ -141,6 +207,7 @@ class VideoPlayerViewController: AVPlayerViewController {
         bottomControlsContainer.addSubview(seekBar)
         bottomControlsContainer.addSubview(currentTimeLabel)
         bottomControlsContainer.addSubview(durationLabel)
+        bottomControlsContainer.addSubview(speedButton)
 
         // レイアウト制約
         NSLayoutConstraint.activate([
@@ -164,6 +231,9 @@ class VideoPlayerViewController: AVPlayerViewController {
             bottomControlsContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             bottomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
 
+            speedButton.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
+            speedButton.topAnchor.constraint(equalTo: bottomControlsContainer.topAnchor, constant: 8),
+
             currentTimeLabel.leadingAnchor.constraint(equalTo: bottomControlsContainer.leadingAnchor, constant: 16),
             currentTimeLabel.bottomAnchor.constraint(equalTo: bottomControlsContainer.bottomAnchor, constant: -8),
 
@@ -172,7 +242,8 @@ class VideoPlayerViewController: AVPlayerViewController {
 
             seekBar.leadingAnchor.constraint(equalTo: bottomControlsContainer.leadingAnchor, constant: 16),
             seekBar.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
-            seekBar.bottomAnchor.constraint(equalTo: currentTimeLabel.topAnchor, constant: -8)
+            seekBar.bottomAnchor.constraint(equalTo: currentTimeLabel.topAnchor, constant: -8),
+            seekBar.topAnchor.constraint(equalTo: speedButton.bottomAnchor, constant: 8)
         ])
 
         // タップジェスチャーの追加
@@ -189,8 +260,9 @@ class VideoPlayerViewController: AVPlayerViewController {
     private func updateControlsVisibility() {
         UIView.animate(withDuration: 0.3) {
             self.playPauseButton.alpha = self.isControlsVisible ? 1 : 0
-            self.bottomControlsContainer.alpha = self.isControlsVisible ? 1 : 0
             self.buttonBackground.alpha = self.isControlsVisible ? 1 : 0
+            self.bottomControlsContainer.alpha = self.isControlsVisible ? 1 : 0
+            self.speedButton.alpha = self.isControlsVisible ? 1 : 0
         }
     }
 
@@ -211,21 +283,29 @@ class VideoPlayerViewController: AVPlayerViewController {
         controlsAutoHideTimer = nil
     }
 
+    private func changePlaybackSpeed(toIndex index: Int) {
+        guard index >= 0 && index < availableSpeeds.count else { return }
+
+        currentSpeedIndex = index
+        let speed = availableSpeeds[index]
+
+        player?.rate = Float(speed)
+        speedButton.setTitle("\(speed)x", for: .normal)
+        setupSpeedMenu()
+    }
+
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
         let location = gesture.location(in: view)
 
-        // 下部コントロールエリアのタップは無視
         if bottomControlsContainer.frame.contains(location) {
             return
         }
 
-        // 中央付近のタップで再生/一時停止
         let centerRegion = view.bounds.insetBy(dx: view.bounds.width * 0.3, dy: view.bounds.height * 0.3)
         if centerRegion.contains(location) {
             togglePlayPause()
         }
 
-        // コントロールの表示/非表示を切り替え
         isControlsVisible.toggle()
         if isControlsVisible {
             startControlsAutoHideTimer()
@@ -233,7 +313,6 @@ class VideoPlayerViewController: AVPlayerViewController {
     }
 
     @objc private func seekBarValueChanged() {
-        // シーク中は自動非表示タイマーを停止
         stopControlsAutoHideTimer()
         if let duration = player?.currentItem?.duration.seconds {
             let targetTime = Double(seekBar.value) * duration
@@ -298,6 +377,7 @@ class VideoPlayerViewController: AVPlayerViewController {
                     if let duration = player?.currentItem?.duration.seconds {
                         updateTimeDisplay(duration: duration)
                     }
+                    player?.rate = Float(availableSpeeds[currentSpeedIndex])
                     onReady()
                 case .failed:
                     if let error = player?.currentItem?.error {
@@ -340,10 +420,6 @@ class VideoPlayerViewController: AVPlayerViewController {
     }
 }
 
-// VideoPlayerView.swift
-import SwiftUI
-import AVKit
-
 struct CustomVideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let isPlaying: Bool
@@ -371,6 +447,8 @@ struct CustomVideoPlayerView: UIViewControllerRepresentable {
 struct CustomVideoPlayerView_Previews: PreviewProvider {
     static var previews: some View {
         VideoPlayerPreviewContainer()
+            .previewInterfaceOrientation(.landscapeRight)
+
     }
 
     // プレビュー用のコンテナビュー
