@@ -160,3 +160,57 @@ extension String {
         return documentsURL.appendingPathComponent(self)
     }
 }
+
+
+struct VideoPlayerListView_Previews: PreviewProvider {
+    static var previews: some View {
+        VideoPlayerListView(
+            store: Store(
+                initialState: VideoPlayerList.State(
+                    videos: [
+                        .init(
+                            id: UUID(),
+                            fileName: "sample_video.mp4",
+                            title: "サンプルビデオ 1",
+                            duration: 185,
+                            createdAt: Date()
+                        ),
+                        .init(
+                            id: UUID(),
+                            fileName: "another_video.mp4",
+                            title: "サンプルビデオ 2",
+                            duration: 260,
+                            createdAt: Date().addingTimeInterval(-86400)
+                        )
+                    ],
+                    isShowingVideoPicker: false, isLoading: false
+                ),
+                reducer: { VideoPlayerList() }
+            )
+        )
+    }
+}
+
+struct VideoRowView_Previews: PreviewProvider {
+    static var previews: some View {
+        List {
+            VideoRowView(
+                video: .init(
+                    id: UUID(),
+                    fileName: "sample_video.mp4",
+                    title: "サンプルビデオ",
+                    duration: 185,
+                    createdAt: Date()
+                )
+            )
+        }
+    }
+}
+
+struct VideoThumbnail_Previews: PreviewProvider {
+    static var previews: some View {
+        if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            VideoThumbnail(url: documentsURL.appendingPathComponent("sample_video.mp4"))
+        }
+    }
+}
