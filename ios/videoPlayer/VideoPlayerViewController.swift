@@ -68,36 +68,9 @@ class VideoPlayerViewController: AVPlayerViewController {
         setupCustomControls()
     }
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .landscape
-    }
-
-    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
-        return .landscapeRight
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-            return
-        }
 
-        let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: .landscape)
-
-        DispatchQueue.main.async { [weak self] in
-            // 親ビューコントローラーも含めて更新
-            self?.navigationController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-            self?.tabBarController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-            self?.setNeedsUpdateOfSupportedInterfaceOrientations()
-
-            windowScene.requestGeometryUpdate(geometryPreferences) { error in
-                print("Orientation error: \(error)")
-
-            }
-
-            // 回転を即時反映
-            UIViewController.attemptRotationToDeviceOrientation()
-        }
     }
     
 
