@@ -73,18 +73,38 @@ extension CoreDataClient: DependencyKey {
     )
 }
 
-extension CoreDataClient:TestDependencyKey {
+extension CoreDataClient: TestDependencyKey {
     static let previewValue = Self(
-        fetchVideos: { [] },
+        fetchVideos: {
+            return [
+                SavedVideoEntity(
+                    id: UUID(),
+                    fileName: "test1.mp4",
+                    title: "テスト動画1",
+                    duration: 180.0,
+                    createdAt: Date()
+                ),
+                SavedVideoEntity(
+                    id: UUID(),
+                    fileName: "test2.mp4",
+                    title: "テスト動画2",
+                    duration: 240.0,
+                    createdAt: Date().addingTimeInterval(-86400)
+                ),
+                SavedVideoEntity(
+                    id: UUID(),
+                    fileName: "test3.mp4",
+                    title: "テスト動画3",
+                    duration: 300.0,
+                    createdAt: Date().addingTimeInterval(-172800)
+                )
+            ]
+        },
         saveVideo: { _, _, _ in },
         deleteVideo: { _ in }
     )
 
-    static let testValue = Self(
-        fetchVideos: { [] },
-        saveVideo: { _, _, _ in },
-        deleteVideo: { _ in }
-    )
+    static let testValue = previewValue
 }
 
 extension DependencyValues {

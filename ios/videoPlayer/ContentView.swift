@@ -11,7 +11,6 @@ import os
 
 
 struct ContentView: View {
-    let store: StoreOf<MultiVideoPlayer>
 
 
     init() {
@@ -52,21 +51,6 @@ struct ContentView: View {
             }
         }
 
-        self.store = Store(
-            initialState: MultiVideoPlayer.State(
-                players: IdentifiedArrayOf(
-                    uniqueElements: sampleURLs.map { url in
-                        VideoPlayer.State(
-                            id: UUID(),
-                            fileName: url.lastPathComponent
-                        )
-                    }
-                )
-            ),
-            reducer: {
-                MultiVideoPlayer()._printChanges()
-            }
-        )
     }
 
     var body: some View {
