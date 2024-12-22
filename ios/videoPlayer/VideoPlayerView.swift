@@ -60,3 +60,38 @@ struct VideoPlayerView: View {
     }
 }
 
+
+struct VideoPlayer_Previews: PreviewProvider {
+    static var previews: some View {
+        // 再生中の状態
+        VideoPlayerView(
+            store: Store(
+                initialState: VideoPlayer.State(
+                    id: UUID(),
+                    fileName: "test1.mp4",
+                    isPlaying: true,
+                    duration: 180,
+                    volume: 0.8
+                ),
+                reducer: { VideoPlayer() }
+            )
+        )
+        .previewDisplayName("Playing State")
+
+        // 一時停止状態
+        VideoPlayerView(
+            store: Store(
+                initialState: VideoPlayer.State(
+                    id: UUID(),
+                    fileName: "test2.mp4",
+                    isPlaying: false,
+                    duration: 240,
+                    volume: 0.5
+                ),
+                reducer: { VideoPlayer() }
+            )
+        )
+        .previewDisplayName("Paused State")
+    }
+}
+
