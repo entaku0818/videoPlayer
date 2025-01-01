@@ -23,6 +23,12 @@ class VideoPlayerViewController: AVPlayerViewController {
     private let speedMenu: UIMenu
     private let availableSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
     private var currentSpeedIndex = 2 // デフォルトは1.0倍
+    private let rotateButton = UIButton(type: .system)
+    private var isLandscape = UIDevice.current.orientation.isLandscape {
+        didSet {
+            updateRotation()
+        }
+    }
 
     private var isControlsVisible = true {
         didSet {
@@ -182,6 +188,17 @@ class VideoPlayerViewController: AVPlayerViewController {
         bottomControlsContainer.addSubview(durationLabel)
         bottomControlsContainer.addSubview(speedButton)
 
+        // 回転ボタンの設定
+        rotateButton.translatesAutoresizingMaskIntoConstraints = false
+        rotateButton.tintColor = .white
+        let rotateImage = UIImage(systemName: "rotate.right")
+        rotateButton.setImage(rotateImage, for: .normal)
+        rotateButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        rotateButton.layer.cornerRadius = 15
+        rotateButton.contentEdgeInsets = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
+        rotateButton.addTarget(self, action: #selector(rotateButtonTapped), for: .touchUpInside)
+        bottomControlsContainer.addSubview(rotateButton)
+
         // レイアウト制約
         NSLayoutConstraint.activate([
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -216,7 +233,12 @@ class VideoPlayerViewController: AVPlayerViewController {
             seekBar.leadingAnchor.constraint(equalTo: bottomControlsContainer.leadingAnchor, constant: 16),
             seekBar.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
             seekBar.bottomAnchor.constraint(equalTo: currentTimeLabel.topAnchor, constant: -8),
-            seekBar.topAnchor.constraint(equalTo: speedButton.bottomAnchor, constant: 8)
+            seekBar.topAnchor.constraint(equalTo: speedButton.bottomAnchor, constant: 8),
+
+            rotateButton.trailingAnchor.constraint(equalTo: speedButton.leadingAnchor, constant: -8),
+             rotateButton.centerYAnchor.constraint(equalTo: speedButton.centerYAnchor),
+             rotateButton.widthAnchor.constraint(equalToConstant: 30),
+             rotateButton.heightAnchor.constraint(equalToConstant: 30)
         ])
 
         // タップジェスチャーの追加
@@ -390,6 +412,34 @@ class VideoPlayerViewController: AVPlayerViewController {
         if let gradientLayer = bottomControlsContainer.layer.sublayers?.first as? CAGradientLayer {
             gradientLayer.frame = bottomControlsContainer.bounds
         }
+    }
+
+    @objc private func rotateButtonTapped() {
+        isLandscape.toggle()
+        let orientation: UIInterfaceOrientation = isLandscape ? .landscapeRight : .portrait
+        setOrientation(orientation)
+    }
+
+    private func setOrientation(_ orientation: UIInterfaceOrientation) {
+        if #available(iOS 16.0, *) {
+            let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+            let orientation = orientation == .portrait ? UIInterfaceOrientationMask.portrait : UIInterfaceOrientationMask.landscape
+            let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(interfaceOrientations: orientation)
+            Task {
+                await windowScene?.requestGeometryUpdate(geometryPreferences)
+            }
+        } else {
+            UIDevice.current.setValue(orientation.rawValue, forKey: "orientation")
+        }
+    }
+
+    @objc private func orientationChanged() {
+        isLandscape = UIDevice.current.orientation.isLandscape
+    }
+
+    private func updateRotation() {
+        let rotation = isLandscape ? CGAffineTransform(rotationAngle: .pi / 2) : .identity
+        rotateButton.transform = rotation
     }
 }
 
