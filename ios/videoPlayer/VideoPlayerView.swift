@@ -63,35 +63,52 @@ struct VideoPlayerView: View {
 
 struct VideoPlayer_Previews: PreviewProvider {
     static var previews: some View {
-        // 再生中の状態
-        VideoPlayerView(
-            store: Store(
-                initialState: VideoPlayer.State(
-                    id: UUID(),
-                    fileName: "test1.mp4",
-                    isPlaying: true,
-                    duration: 180,
-                    volume: 0.8
-                ),
-                reducer: { VideoPlayer() }
+        Group {
+            // 再生中の状態（縦向き）
+            VideoPlayerView(
+                store: Store(
+                    initialState: VideoPlayer.State(
+                        id: UUID(),
+                        fileName: "test1.mp4",
+                        isPlaying: true,
+                        duration: 180,
+                        volume: 0.8
+                    ),
+                    reducer: { VideoPlayer() }
+                )
             )
-        )
-        .previewDisplayName("Playing State")
+            .previewDisplayName("Playing State - Portrait")
 
-        // 一時停止状態
-        VideoPlayerView(
-            store: Store(
-                initialState: VideoPlayer.State(
-                    id: UUID(),
-                    fileName: "test2.mp4",
-                    isPlaying: false,
-                    duration: 240,
-                    volume: 0.5
-                ),
-                reducer: { VideoPlayer() }
+            // 一時停止状態（縦向き）
+            VideoPlayerView(
+                store: Store(
+                    initialState: VideoPlayer.State(
+                        id: UUID(),
+                        fileName: "test2.mp4",
+                        isPlaying: false,
+                        duration: 240,
+                        volume: 0.5
+                    ),
+                    reducer: { VideoPlayer() }
+                )
             )
-        )
-        .previewDisplayName("Paused State")
+            .previewDisplayName("Paused State - Portrait")
+
+            // 再生中の状態（横向き）
+            VideoPlayerView(
+                store: Store(
+                    initialState: VideoPlayer.State(
+                        id: UUID(),
+                        fileName: "test3.mp4",
+                        isPlaying: true,
+                        duration: 180,
+                        volume: 0.8
+                    ),
+                    reducer: { VideoPlayer() }
+                )
+            )
+            .previewInterfaceOrientation(.landscapeRight)
+            .previewDisplayName("Playing State - Landscape")
+        }
     }
 }
-
