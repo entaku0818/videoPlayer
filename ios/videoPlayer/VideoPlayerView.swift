@@ -1,5 +1,5 @@
 //
-//  a.swift
+//  VideoPlayerView.swift
 //  videoPlayer
 //
 //  Created by 遠藤拓弥 on 2024/12/01.
