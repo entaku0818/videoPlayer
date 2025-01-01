@@ -14,10 +14,8 @@ struct VideoPlayerView: View {
     let store: StoreOf<VideoPlayer>
     @ObservedObject var viewStore: ViewStoreOf<VideoPlayer>
     private let player: AVPlayer
-
-    // 画面の向きを監視
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(store: StoreOf<VideoPlayer>) {
         self.store = store
@@ -33,7 +31,8 @@ struct VideoPlayerView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            VStack {
+            ZStack(alignment: .topLeading) {
+                // ビデオプレーヤー
                 CustomVideoPlayerView(
                     player: player,
                     isPlaying: viewStore.isPlaying,
@@ -53,12 +52,26 @@ struct VideoPlayerView: View {
                     maxHeight: isPortrait(verticalSizeClass) ? 200 : .infinity
                 )
                 .ignoresSafeArea(isPortrait(verticalSizeClass) ? .all : .all)
+
+                // 閉じるボタン
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.black.opacity(0.3))
+                        .clipShape(Circle())
+                }
+                .padding(.top, isPortrait(verticalSizeClass) ? 16 : geometry.safeAreaInsets.top + 16)
+                .padding(.leading, 16)
             }
             .padding(isPortrait(verticalSizeClass) ? .vertical : [])
+            .navigationBarBackButtonHidden(true)
         }
     }
 
-    // 縦向きかどうかを判定
     private func isPortrait(_ sizeClass: UserInterfaceSizeClass?) -> Bool {
         return sizeClass == .regular
     }
