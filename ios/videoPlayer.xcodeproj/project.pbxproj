@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		611CC7202D26D6690059D4D5 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 611CC71F2D26D6690059D4D5 /* GoogleService-Info.plist */; };
+		611CC7262D26DBF80059D4D5 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 611CC7252D26DBF80059D4D5 /* FirebaseAnalytics */; };
 		614F6E132CFBEE3600C12AC7 /* videoPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614F6E122CFBEE3600C12AC7 /* videoPlayerApp.swift */; };
 		614F6E152CFBEE3600C12AC7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614F6E142CFBEE3600C12AC7 /* ContentView.swift */; };
 		614F6E172CFBEE3700C12AC7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 614F6E162CFBEE3700C12AC7 /* Assets.xcassets */; };
@@ -49,6 +51,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		611CC71F2D26D6690059D4D5 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		614F6E0F2CFBEE3600C12AC7 /* videoPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = videoPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		614F6E122CFBEE3600C12AC7 /* videoPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = videoPlayerApp.swift; sourceTree = "<group>"; };
 		614F6E142CFBEE3600C12AC7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -80,6 +83,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				611CC7262D26DBF80059D4D5 /* FirebaseAnalytics in Frameworks */,
 				6165341E2CFBEFB5006DA5E8 /* ComposableArchitecture in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -124,6 +128,7 @@
 		614F6E112CFBEE3600C12AC7 /* videoPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				611CC71F2D26D6690059D4D5 /* GoogleService-Info.plist */,
 				6165343A2CFCB6F9006DA5E8 /* list */,
 				6165342D2CFC49AB006DA5E8 /* video */,
 				614F6E122CFBEE3600C12AC7 /* videoPlayerApp.swift */,
@@ -205,6 +210,7 @@
 			name = videoPlayer;
 			packageProductDependencies = (
 				6165341D2CFBEFB5006DA5E8 /* ComposableArchitecture */,
+				611CC7252D26DBF80059D4D5 /* FirebaseAnalytics */,
 			);
 			productName = videoPlayer;
 			productReference = 614F6E0F2CFBEE3600C12AC7 /* videoPlayer.app */;
@@ -280,6 +286,7 @@
 			mainGroup = 614F6E062CFBEE3600C12AC7;
 			packageReferences = (
 				6165341C2CFBEFB5006DA5E8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				611CC7242D26DBF80059D4D5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = 614F6E102CFBEE3600C12AC7 /* Products */;
 			projectDirPath = "";
@@ -299,6 +306,7 @@
 			files = (
 				614F6E1A2CFBEE3700C12AC7 /* Preview Assets.xcassets in Resources */,
 				614F6E172CFBEE3700C12AC7 /* Assets.xcassets in Resources */,
+				611CC7202D26D6690059D4D5 /* GoogleService-Info.plist in Resources */,
 				6165342C2CFC2E7A006DA5E8 /* video2.mp4 in Resources */,
 				6165342B2CFC2E7A006DA5E8 /* video1.mp4 in Resources */,
 			);
@@ -672,6 +680,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		611CC7242D26DBF80059D4D5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.6.0;
+			};
+		};
 		6165341C2CFBEFB5006DA5E8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture.git";
@@ -683,6 +699,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		611CC7252D26DBF80059D4D5 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 611CC7242D26DBF80059D4D5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
 		6165341D2CFBEFB5006DA5E8 /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6165341C2CFBEFB5006DA5E8 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;

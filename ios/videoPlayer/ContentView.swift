@@ -10,8 +10,8 @@ import ComposableArchitecture
 import os 
 
 
-struct ContentView: View {
 
+struct ContentView: View {
 
     init() {
         let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "videoPlayer", category: "FileSystem")
