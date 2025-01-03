@@ -26,8 +26,8 @@ struct VideoPlayerList: Reducer {
     enum Action {
         case onAppear
         case videosLoaded(TaskResult<[SavedVideoEntity]>)
-        case toggleVideoPicker
-        case cancelVideoPicker
+        case openVideoPicker
+        case closeVideoPicker
         case videoSelected(URL, String, Double)
         case videoSaved(TaskResult<Void>)
         case deleteVideo(State.VideoModel)
@@ -67,10 +67,10 @@ struct VideoPlayerList: Reducer {
                 print("Failed to load videos: \(error)")
                 return .none
 
-            case .toggleVideoPicker:
-                state.isShowingVideoPicker.toggle()
+            case .openVideoPicker:
+                state.isShowingVideoPicker = true
                 return .none
-            case .cancelVideoPicker:
+            case .closeVideoPicker:
                 state.isShowingVideoPicker = false
                 return .none
             case let .videoSelected(url, title, duration):

@@ -9,9 +9,12 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import ComposableArchitecture
+import os.log
 
 struct VideoPicker: UIViewControllerRepresentable {
     let store: StoreOf<VideoPlayerList>
+
+
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -41,46 +44,64 @@ struct VideoPicker: UIViewControllerRepresentable {
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "", category: "VideoPicker")
+
             if results.isEmpty {
-                ViewStore(store, observe: { $0 }).send(.cancelVideoPicker)
+                logger.debug("No videos selected, closing picker")
+                ViewStore(store, observe: { $0 }).send(.closeVideoPicker)
                 return
             }
 
+            logger.info("Processing \(results.count) selected videos")
             var processedCount = 0
 
             for result in results {
                 result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { [weak self] url, error in
                     guard let self = self,
-                          let url = url else { return }
+                          let url = url else {
+                        logger.error("Failed to load video: \(String(describing: error))")
+                        return
+                    }
 
                     let uniqueFileName = "\(UUID().uuidString).mov"
                     let permanentURL = createPermanentURL(for: uniqueFileName)
+                    logger.debug("Copying video to permanent storage: \(uniqueFileName)")
 
                     do {
                         try FileManager.default.copyItem(at: url, to: permanentURL)
+                        logger.info("Successfully copied video to: \(permanentURL.path)")
 
                         Task {
-                            let asset = AVAsset(url: permanentURL)
-                            let duration = try await asset.load(.duration).seconds
-                            let title = result.itemProvider.suggestedName ?? "Untitled Video"
+                            do {
+                                let asset = AVAsset(url: permanentURL)
+                                let duration = try await asset.load(.duration).seconds
+                                let title = result.itemProvider.suggestedName ?? "Untitled Video"
 
-                            await ViewStore(self.store, observe: { $0 }).send(
-                                .videoSelected(permanentURL, title, duration)
-                            )
+                                logger.debug("Video details - Title: \(title), Duration: \(duration) seconds")
 
-                            processedCount += 1
+                                await ViewStore(self.store, observe: { $0 }).send(
+                                    .videoSelected(permanentURL, title, duration)
+                                )
 
-                            if processedCount == results.count {
-                                await ViewStore(self.store, observe: { $0 }).send(.toggleVideoPicker)
+                                processedCount += 1
+                                logger.info("Processed \(processedCount) of \(results.count) videos")
+
+                                if processedCount == results.count {
+                                    logger.info("All videos processed, reopening picker")
+
+                                    ViewStore(self.store, observe: { $0 }).send(.closeVideoPicker)
+
+                                }
+                            } catch {
+                                logger.error("Failed to load video asset: \(error.localizedDescription)")
                             }
                         }
                     } catch {
-                        print("Failed to copy video: \(error)")
+                        logger.error("Failed to copy video: \(error.localizedDescription)")
                         processedCount += 1
                     }
                 }
             }
-        }
-    }
+        }    }
 }
 

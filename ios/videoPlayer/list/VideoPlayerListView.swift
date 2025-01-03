@@ -48,7 +48,7 @@ struct VideoPlayerListView: View {
                 .navigationTitle("Videos")
                 .toolbar {
                     Button {
-                        viewStore.send(.toggleVideoPicker)
+                        viewStore.send(.openVideoPicker)
                     } label: {
                         Image(systemName: "plus")
                     }
