@@ -66,6 +66,10 @@ struct VideoPlayerView: View {
                 }
                 .padding(.top, isPortrait(verticalSizeClass) ? 16 : geometry.safeAreaInsets.top + 16)
                 .padding(.leading, 16)
+            }.onDisappear {
+                if UIDevice.current.orientation.isLandscape {
+                    UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
+                }
             }
             .padding(isPortrait(verticalSizeClass) ? .vertical : [])
             .navigationBarBackButtonHidden(true)
