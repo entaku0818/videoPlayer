@@ -16,6 +16,7 @@ struct VideoPlayerView: View {
     private let player: AVPlayer
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(store: StoreOf<VideoPlayer>) {
         self.store = store
@@ -49,36 +50,88 @@ struct VideoPlayerView: View {
                 )
                 .frame(
                     maxWidth: .infinity,
-                    maxHeight: isPortrait(verticalSizeClass) ? 200 : .infinity
+                    maxHeight: videoPlayerHeight(for: geometry)
                 )
-                .ignoresSafeArea(isPortrait(verticalSizeClass) ? .all : .all)
+                .ignoresSafeArea(shouldIgnoreSafeArea())
 
                 // 閉じるボタン
                 Button(action: {
                     dismiss()
                 }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: closeButtonSize()))
                         .foregroundColor(.white)
-                        .frame(width: 30, height: 30)
+                        .frame(width: closeButtonFrameSize(), height: closeButtonFrameSize())
                         .background(Color.black.opacity(0.3))
                         .clipShape(Circle())
                 }
-                .padding(.top, isPortrait(verticalSizeClass) ? 16 : geometry.safeAreaInsets.top + 16)
-                .padding(.leading, 16)
-            }.onDisappear {
+                .padding(.top, closeButtonTopPadding(geometry))
+                .padding(.leading, closeButtonLeadingPadding())
+            }
+            .onDisappear {
                 if UIDevice.current.orientation.isLandscape {
                     UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
                 }
             }
-            .padding(isPortrait(verticalSizeClass) ? .vertical : [])
             .navigationBarBackButtonHidden(true)
         }
     }
 
-    private func isPortrait(_ sizeClass: UserInterfaceSizeClass?) -> Bool {
-        return sizeClass == .regular
+    // デバイスとサイズクラスに基づいて表示モードを判定
+    private func isPortraitMode() -> Bool {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return verticalSizeClass == .regular && horizontalSizeClass == .regular
+        }
+        return verticalSizeClass == .regular
     }
+
+    // ビデオプレーヤーの高さを計算
+    private func videoPlayerHeight(for geometry: GeometryProxy) -> CGFloat {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+
+            return .infinity
+        } else {
+            // iPhoneの場合
+            if isPortraitMode() {
+                return 200
+            }
+            return .infinity
+        }
+    }
+
+    // SafeAreaの無視判定
+    private func shouldIgnoreSafeArea() -> SafeAreaRegions {
+        if isPortraitMode() {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                return []  // iPadではSafeAreaを尊重
+            }
+            return .all
+        }
+        return .all
+    }
+
+    // 閉じるボタンのサイズ設定
+    private func closeButtonSize() -> CGFloat {
+        UIDevice.current.userInterfaceIdiom == .pad ? 24 : 20
+    }
+
+    private func closeButtonFrameSize() -> CGFloat {
+        UIDevice.current.userInterfaceIdiom == .pad ? 40 : 30
+    }
+
+    // 閉じるボタンの上部パディング
+    private func closeButtonTopPadding(_ geometry: GeometryProxy) -> CGFloat {
+        if isPortraitMode() {
+            return UIDevice.current.userInterfaceIdiom == .pad ? 24 : 16
+        }
+        return geometry.safeAreaInsets.top + 16
+    }
+
+    // 閉じるボタンの左側パディング
+    private func closeButtonLeadingPadding() -> CGFloat {
+        UIDevice.current.userInterfaceIdiom == .pad ? 24 : 16
+    }
+
 
     private func timeString(_ time: Double) -> String {
         let minutes = Int(time) / 60
@@ -86,7 +139,6 @@ struct VideoPlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 }
-
 struct VideoPlayer_Previews: PreviewProvider {
     static var previews: some View {
         Group {
@@ -120,6 +172,39 @@ struct VideoPlayer_Previews: PreviewProvider {
             )
             .previewInterfaceOrientation(.landscapeRight)
             .previewDisplayName("Playing State - Landscape")
+
+            // iPad用プレビュー（縦向き）
+            VideoPlayerView(
+                store: Store(
+                    initialState: VideoPlayer.State(
+                        id: UUID(),
+                        fileName: "test1.mp4",
+                        isPlaying: true,
+                        duration: 180,
+                        volume: 0.8
+                    ),
+                    reducer: { VideoPlayer() }
+                )
+            )
+            .previewDevice(PreviewDevice(rawValue: "iPad Pro (11-inch)"))
+            .previewDisplayName("iPad - Portrait")
+
+            // iPad用プレビュー（横向き）
+            VideoPlayerView(
+                store: Store(
+                    initialState: VideoPlayer.State(
+                        id: UUID(),
+                        fileName: "test3.mp4",
+                        isPlaying: true,
+                        duration: 180,
+                        volume: 0.8
+                    ),
+                    reducer: { VideoPlayer() }
+                )
+            )
+            .previewDevice(PreviewDevice(rawValue: "iPad Pro (11-inch)"))
+            .previewInterfaceOrientation(.landscapeRight)
+            .previewDisplayName("iPad - Landscape")
         }
     }
 }
