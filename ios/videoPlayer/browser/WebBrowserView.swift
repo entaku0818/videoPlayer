@@ -14,19 +14,21 @@ struct WebBrowserView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // URL入力バー
+            // URL・検索入力バー
             HStack {
-                TextField("URLを入力", text: $store.urlString)
+                TextField("検索またはURLを入力", text: $store.urlString)
                     .textFieldStyle(.roundedBorder)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
-                    .keyboardType(.URL)
+                    .keyboardType(.webSearch)
                     .onSubmit {
                         store.send(.goButtonTapped)
                     }
 
-                Button("Go") {
+                Button {
                     store.send(.goButtonTapped)
+                } label: {
+                    Image(systemName: "magnifyingglass")
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -100,6 +102,29 @@ struct WebBrowserView: View {
                     .padding()
                 }
             }
+            // ストリーム検出ボタン（フローティング）
+            if !store.detectedStreams.isEmpty {
+                HStack {
+                    Button {
+                        if let firstStream = store.detectedStreams.first {
+                            store.send(.playStream(firstStream.url))
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.circle.fill")
+                            Text("ストリーム再生 (\(store.detectedStreams.count))")
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                        .shadow(radius: 3)
+                    }
+                    Spacer()
+                }
+                .padding()
+            }
         }
         .navigationTitle("ブラウザ")
         .navigationBarTitleDisplayMode(.inline)
@@ -115,6 +140,14 @@ struct WebBrowserView: View {
                 Text(store.errorMessage ?? "")
             }
         )
+        .fullScreenCover(isPresented: .constant(store.showStreamPlayer)) {
+            if let streamURL = store.selectedStreamURL {
+                FullscreenStreamPlayerView(streamURL: streamURL)
+                    .onDisappear {
+                        store.send(.closeStreamPlayer)
+                    }
+            }
+        }
     }
 }
 
@@ -175,15 +208,27 @@ struct WebViewRepresentable: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = true
 
         // JavaScript でビデオタグを検出するスクリプトを注入
-        let script = WKUserScript(
+        let videoScript = WKUserScript(
             source: videoDetectionScript,
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: false
         )
-        webView.configuration.userContentController.addUserScript(script)
+        webView.configuration.userContentController.addUserScript(videoScript)
         webView.configuration.userContentController.add(
             context.coordinator,
             name: "videoDetector"
+        )
+
+        // ストリームURL検出用スクリプト
+        let streamScript = WKUserScript(
+            source: streamDetectionScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        webView.configuration.userContentController.addUserScript(streamScript)
+        webView.configuration.userContentController.add(
+            context.coordinator,
+            name: "streamDetector"
         )
 
         return webView
@@ -212,6 +257,19 @@ struct WebViewRepresentable: UIViewRepresentable {
             // ページ読み込み開始
         }
 
+        // ユニバーサルリンク（他アプリへの遷移）を防ぐ
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+            // 常にブラウザ内で開く（外部アプリに飛ばさない）
+            decisionHandler(.allow, preferences)
+        }
+
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            // ナビゲーション確定時にURLバーを更新（ストリームはリセットしない）
+            if let url = webView.url {
+                store.send(.updateURLBar(url))
+            }
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             store.send(.pageLoaded)
 
@@ -229,23 +287,45 @@ struct WebViewRepresentable: UIViewRepresentable {
 
         // JavaScript からのメッセージを受信
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard message.name == "videoDetector",
-                  let body = message.body as? [[String: Any]] else {
-                return
-            }
+            if message.name == "videoDetector" {
+                guard let body = message.body as? [[String: Any]] else { return }
 
-            let videos = body.compactMap { dict -> WebBrowser.State.DetectedVideo? in
-                guard let src = dict["src"] as? String, !src.isEmpty else {
-                    return nil
+                let videos = body.compactMap { dict -> WebBrowser.State.DetectedVideo? in
+                    guard let src = dict["src"] as? String, !src.isEmpty else {
+                        return nil
+                    }
+                    return WebBrowser.State.DetectedVideo(
+                        src: src,
+                        poster: dict["poster"] as? String,
+                        type: dict["type"] as? String
+                    )
                 }
-                return WebBrowser.State.DetectedVideo(
-                    src: src,
-                    poster: dict["poster"] as? String,
-                    type: dict["type"] as? String
-                )
-            }
 
-            store.send(.videosDetected(videos))
+                store.send(.videosDetected(videos))
+            } else if message.name == "streamDetector" {
+                guard let body = message.body as? [[String: Any]] else { return }
+
+                let streams = body.compactMap { dict -> WebBrowser.State.DetectedStream? in
+                    guard let url = dict["url"] as? String, !url.isEmpty else {
+                        return nil
+                    }
+                    let typeString = dict["type"] as? String ?? ""
+                    let streamType: WebBrowser.State.DetectedStream.StreamType
+                    switch typeString {
+                    case "hls":
+                        streamType = .hls
+                    case "dash":
+                        streamType = .dash
+                    default:
+                        streamType = .mp4
+                    }
+                    return WebBrowser.State.DetectedStream(url: url, type: streamType)
+                }
+
+                if !streams.isEmpty {
+                    store.send(.streamsDetected(streams))
+                }
+            }
         }
     }
 }
@@ -326,6 +406,107 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+"""
+
+// MARK: - JavaScript for Stream Detection
+
+private let streamDetectionScript = """
+(function() {
+    var detectedStreams = [];
+    var sentStreams = new Set();
+
+    function isStreamURL(url) {
+        if (!url || typeof url !== 'string') return null;
+        url = url.toLowerCase();
+
+        if (url.includes('.m3u8') || url.includes('m3u8')) {
+            return 'hls';
+        }
+        if (url.includes('.mpd') || url.includes('dash')) {
+            return 'dash';
+        }
+        if (url.includes('.mp4') && (url.includes('video') || url.includes('media'))) {
+            return 'mp4';
+        }
+        return null;
+    }
+
+    function reportStream(url, type) {
+        if (sentStreams.has(url)) return;
+        sentStreams.add(url);
+
+        try {
+            window.webkit.messageHandlers.streamDetector.postMessage([{
+                url: url,
+                type: type
+            }]);
+        } catch(e) {}
+    }
+
+    // XMLHttpRequest をフック
+    var originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+        var streamType = isStreamURL(url);
+        if (streamType) {
+            reportStream(url, streamType);
+        }
+        return originalXHROpen.apply(this, arguments);
+    };
+
+    // fetch をフック
+    var originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        var url = typeof input === 'string' ? input : (input.url || '');
+        var streamType = isStreamURL(url);
+        if (streamType) {
+            reportStream(url, streamType);
+        }
+        return originalFetch.apply(this, arguments);
+    };
+
+    // video/source タグの src 属性を監視
+    function checkVideoSources() {
+        document.querySelectorAll('video source, video').forEach(function(el) {
+            var src = el.src || el.getAttribute('src');
+            if (src) {
+                var streamType = isStreamURL(src);
+                if (streamType) {
+                    reportStream(src, streamType);
+                }
+            }
+        });
+    }
+
+    // ページ読み込み後にチェック
+    if (document.readyState === 'complete') {
+        checkVideoSources();
+    } else {
+        window.addEventListener('load', checkVideoSources);
+    }
+
+    // DOM変更を監視
+    var observer = new MutationObserver(function(mutations) {
+        checkVideoSources();
+    });
+
+    if (document.body) {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['src']
+        });
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['src']
+            });
+        });
+    }
+})();
 """
 
 #Preview {

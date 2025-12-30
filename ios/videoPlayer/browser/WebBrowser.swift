@@ -16,10 +16,13 @@ struct WebBrowser {
         var currentURL: URL?
         var isLoading: Bool = false
         var detectedVideos: [DetectedVideo] = []
+        var detectedStreams: [DetectedStream] = []
         var downloadingVideoURL: String?
         var downloadProgress: Double = 0
         var errorMessage: String?
         var showVideoList: Bool = false
+        var showStreamPlayer: Bool = false
+        var selectedStreamURL: String?
 
         struct DetectedVideo: Equatable, Identifiable {
             let id = UUID()
@@ -27,14 +30,28 @@ struct WebBrowser {
             let poster: String?
             let type: String?
         }
+
+        struct DetectedStream: Equatable, Identifiable {
+            let id = UUID()
+            let url: String
+            let type: StreamType
+
+            enum StreamType: String, Equatable {
+                case hls = "HLS"
+                case dash = "DASH"
+                case mp4 = "MP4"
+            }
+        }
     }
 
     enum Action: BindableAction {
         case binding(BindingAction<State>)
         case goButtonTapped
         case loadURL(URL)
+        case updateURLBar(URL)
         case pageLoaded
         case videosDetected([State.DetectedVideo])
+        case streamsDetected([State.DetectedStream])
         case downloadVideo(String)
         case downloadProgress(Double)
         case downloadCompleted(URL, String)
@@ -43,6 +60,8 @@ struct WebBrowser {
         case videoSaved
         case videoSaveFailed(String)
         case toggleVideoList
+        case playStream(String)
+        case closeStreamPlayer
         case clearError
     }
 
@@ -57,21 +76,36 @@ struct WebBrowser {
                 return .none
 
             case .goButtonTapped:
-                var urlString = state.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+                let input = state.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !input.isEmpty else { return .none }
 
-                // http/https がなければ追加
-                if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
-                    urlString = "https://" + urlString
-                }
+                let url: URL
 
-                guard let url = URL(string: urlString) else {
-                    state.errorMessage = "無効なURLです"
-                    return .none
+                // URLかどうかを判定
+                if isValidURL(input) {
+                    var urlString = input
+                    if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
+                        urlString = "https://" + urlString
+                    }
+                    guard let validURL = URL(string: urlString) else {
+                        state.errorMessage = "無効なURLです"
+                        return .none
+                    }
+                    url = validURL
+                } else {
+                    // 検索クエリとしてGoogle検索
+                    guard let encodedQuery = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                          let searchURL = URL(string: "https://www.google.com/search?q=\(encodedQuery)") else {
+                        state.errorMessage = "検索できませんでした"
+                        return .none
+                    }
+                    url = searchURL
                 }
 
                 state.currentURL = url
                 state.isLoading = true
                 state.detectedVideos = []
+                state.detectedStreams = []
                 return .none
 
             case let .loadURL(url):
@@ -79,6 +113,12 @@ struct WebBrowser {
                 state.urlString = url.absoluteString
                 state.isLoading = true
                 state.detectedVideos = []
+                state.detectedStreams = []
+                return .none
+
+            case let .updateURLBar(url):
+                // URLバーのみ更新（ストリーム検出はリセットしない）
+                state.urlString = url.absoluteString
                 return .none
 
             case .pageLoaded:
@@ -90,6 +130,13 @@ struct WebBrowser {
                 if !videos.isEmpty {
                     state.showVideoList = true
                 }
+                return .none
+
+            case let .streamsDetected(streams):
+                // 重複を除去して追加
+                let existingURLs = Set(state.detectedStreams.map { $0.url })
+                let newStreams = streams.filter { !existingURLs.contains($0.url) }
+                state.detectedStreams.append(contentsOf: newStreams)
                 return .none
 
             case let .downloadVideo(urlString):
@@ -153,10 +200,41 @@ struct WebBrowser {
                 state.showVideoList.toggle()
                 return .none
 
+            case let .playStream(urlString):
+                state.selectedStreamURL = urlString
+                state.showStreamPlayer = true
+                return .none
+
+            case .closeStreamPlayer:
+                state.showStreamPlayer = false
+                state.selectedStreamURL = nil
+                return .none
+
             case .clearError:
                 state.errorMessage = nil
                 return .none
             }
         }
     }
+}
+
+// MARK: - Helper Functions
+
+/// 入力がURLかどうかを判定する
+private func isValidURL(_ string: String) -> Bool {
+    // URLっぽいパターンをチェック
+    let urlPatterns = [
+        "^https?://",           // http:// or https://
+        "^[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}", // domain.tld パターン（例: google.com, example.co.jp）
+        "^localhost",           // localhost
+        "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}" // IPアドレス
+    ]
+
+    for pattern in urlPatterns {
+        if string.range(of: pattern, options: .regularExpression) != nil {
+            return true
+        }
+    }
+
+    return false
 }
