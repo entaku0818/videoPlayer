@@ -14,6 +14,13 @@ struct VideoPlayerList: Reducer {
         var selectedVideo: VideoModel?
         var isLoading = false
 
+        // URL直接ダウンロード用
+        var isShowingURLInput = false
+        var urlInputText = ""
+        var isDownloading = false
+        var downloadProgress: Double = 0
+        var downloadError: String?
+
         struct VideoModel: Equatable, Identifiable {
             let id: UUID
             let fileName: String
@@ -32,9 +39,20 @@ struct VideoPlayerList: Reducer {
         case videoSaved(TaskResult<Void>)
         case deleteVideo(State.VideoModel)
         case videoDeleted(TaskResult<Void>)
+
+        // URL直接ダウンロード用
+        case openURLInput
+        case closeURLInput
+        case updateURLInput(String)
+        case downloadFromURL
+        case downloadProgress(Double)
+        case downloadCompleted(URL)
+        case downloadFailed(String)
+        case clearDownloadError
     }
 
     @Dependency(\.coreDataClient) var coreDataClient
+    @Dependency(\.videoDownloader) var videoDownloader
 
     var body: some Reducer<State, Action> {
         Reduce { state, action in
@@ -109,6 +127,78 @@ struct VideoPlayerList: Reducer {
 
             case let .videoDeleted(.failure(error)):
                 print("Failed to delete video: \(error)")
+                return .none
+
+            // URL直接ダウンロード
+            case .openURLInput:
+                state.isShowingURLInput = true
+                state.urlInputText = ""
+                return .none
+
+            case .closeURLInput:
+                state.isShowingURLInput = false
+                return .none
+
+            case let .updateURLInput(text):
+                state.urlInputText = text
+                return .none
+
+            case .downloadFromURL:
+                var urlString = state.urlInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
+                    urlString = "https://" + urlString
+                }
+
+                guard let url = URL(string: urlString) else {
+                    state.downloadError = "無効なURLです"
+                    return .none
+                }
+
+                state.isDownloading = true
+                state.downloadProgress = 0
+                state.isShowingURLInput = false
+
+                return .run { send in
+                    do {
+                        let localURL = try await videoDownloader.download(url) { progress in
+                            Task { @MainActor in
+                                await send(.downloadProgress(progress))
+                            }
+                        }
+                        await send(.downloadCompleted(localURL))
+                    } catch {
+                        await send(.downloadFailed(error.localizedDescription))
+                    }
+                }
+
+            case let .downloadProgress(progress):
+                state.downloadProgress = progress
+                return .none
+
+            case let .downloadCompleted(localURL):
+                state.isDownloading = false
+                state.downloadProgress = 0
+
+                let title = localURL.deletingPathExtension().lastPathComponent
+
+                return .run { send in
+                    await send(.videoSaved(
+                        TaskResult {
+                            try await coreDataClient.saveVideo(localURL, title, 0)
+                        }
+                    ))
+                    await send(.onAppear)
+                }
+
+            case let .downloadFailed(error):
+                state.isDownloading = false
+                state.downloadProgress = 0
+                state.downloadError = error
+                return .none
+
+            case .clearDownloadError:
+                state.downloadError = nil
                 return .none
             }
         }

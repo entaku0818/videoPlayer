@@ -8,6 +8,7 @@
 import SwiftUI
 import ComposableArchitecture
 import AVFoundation
+import WebKit
 
 struct VideoPlayerListView: View {
     let store: StoreOf<VideoPlayerList>
@@ -47,10 +48,38 @@ struct VideoPlayerListView: View {
                 }
                 .navigationTitle("Videos")
                 .toolbar {
-                    Button {
-                        viewStore.send(.openVideoPicker)
-                    } label: {
-                        Image(systemName: "plus")
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        NavigationLink {
+                            WebBrowserView(
+                                store: Store(
+                                    initialState: WebBrowser.State(),
+                                    reducer: { WebBrowser() }
+                                )
+                            )
+                        } label: {
+                            Image(systemName: "globe")
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        HStack {
+                            Button {
+                                viewStore.send(.openURLInput)
+                            } label: {
+                                Image(systemName: "link")
+                            }
+
+                            Button {
+                                viewStore.send(.openVideoPicker)
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                        }
+                    }
+                }
+                .overlay {
+                    if viewStore.isDownloading {
+                        DownloadProgressOverlay(progress: viewStore.downloadProgress)
                     }
                 }
                 .sheet(
@@ -58,10 +87,110 @@ struct VideoPlayerListView: View {
                 ) {
                     VideoPicker(store: store)
                 }
+                .sheet(
+                    isPresented: .constant(viewStore.isShowingURLInput)
+                ) {
+                    URLInputSheet(store: store)
+                }
+                .alert(
+                    "エラー",
+                    isPresented: .constant(viewStore.downloadError != nil),
+                    actions: {
+                        Button("OK") {
+                            viewStore.send(.clearDownloadError)
+                        }
+                    },
+                    message: {
+                        Text(viewStore.downloadError ?? "")
+                    }
+                )
             }
             .onAppear {
                 viewStore.send(.onAppear)
             }
+        }
+    }
+}
+
+// MARK: - URL Input Sheet
+
+struct URLInputSheet: View {
+    let store: StoreOf<VideoPlayerList>
+    @State private var urlText = ""
+
+    var body: some View {
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            NavigationStack {
+                VStack(spacing: 20) {
+                    Text("動画のURLを入力")
+                        .font(.headline)
+
+                    TextField("https://example.com/video.mp4", text: $urlText)
+                        .textFieldStyle(.roundedBorder)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .keyboardType(.URL)
+                        .padding(.horizontal)
+
+                    Text("MP4, WebM, MOV などの直接リンクを入力してください")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
+                .padding(.top, 30)
+                .navigationTitle("URLからダウンロード")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("キャンセル") {
+                            viewStore.send(.closeURLInput)
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("ダウンロード") {
+                            viewStore.send(.updateURLInput(urlText))
+                            viewStore.send(.downloadFromURL)
+                        }
+                        .disabled(urlText.isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+    }
+}
+
+// MARK: - Download Progress Overlay
+
+struct DownloadProgressOverlay: View {
+    let progress: Double
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.5)
+
+                Text("ダウンロード中...")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                ProgressView(value: progress)
+                    .frame(width: 200)
+                    .tint(.white)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.white)
+            }
+            .padding(30)
+            .background(Color(.systemGray5))
+            .cornerRadius(16)
         }
     }
 }
