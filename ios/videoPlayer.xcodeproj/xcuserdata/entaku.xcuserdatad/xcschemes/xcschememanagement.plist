@@ -23,12 +23,30 @@
 			<key>isShown</key>
 			<false/>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>2</integer>
 		</dict>
 		<key>videoPlayer.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>1</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>614F6E0E2CFBEE3600C12AC7</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>614F6E1E2CFBEE3700C12AC7</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>614F6E282CFBEE3700C12AC7</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
