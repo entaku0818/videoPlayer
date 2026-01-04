@@ -107,6 +107,10 @@ struct VideoPlayerListView: View {
             }
             .onAppear {
                 viewStore.send(.onAppear)
+                // 一覧画面では縦向きに戻す
+                if UIDevice.current.orientation.isLandscape {
+                    UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
+                }
             }
         }
     }

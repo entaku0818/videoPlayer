@@ -199,7 +199,7 @@ class VideoPlayerViewController: AVPlayerViewController {
         rotateButton.addTarget(self, action: #selector(rotateButtonTapped), for: .touchUpInside)
         bottomControlsContainer.addSubview(rotateButton)
 
-        // レイアウト制約
+        // レイアウト制約（SafeAreaを考慮）
         NSLayoutConstraint.activate([
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -221,24 +221,24 @@ class VideoPlayerViewController: AVPlayerViewController {
             bottomControlsContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             bottomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
 
-            speedButton.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
+            speedButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
             speedButton.topAnchor.constraint(equalTo: bottomControlsContainer.topAnchor, constant: 8),
 
-            currentTimeLabel.leadingAnchor.constraint(equalTo: bottomControlsContainer.leadingAnchor, constant: 16),
-            currentTimeLabel.bottomAnchor.constraint(equalTo: bottomControlsContainer.bottomAnchor, constant: -8),
+            currentTimeLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            currentTimeLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
 
-            durationLabel.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
-            durationLabel.bottomAnchor.constraint(equalTo: bottomControlsContainer.bottomAnchor, constant: -8),
+            durationLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+            durationLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
 
-            seekBar.leadingAnchor.constraint(equalTo: bottomControlsContainer.leadingAnchor, constant: 16),
-            seekBar.trailingAnchor.constraint(equalTo: bottomControlsContainer.trailingAnchor, constant: -16),
+            seekBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            seekBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
             seekBar.bottomAnchor.constraint(equalTo: currentTimeLabel.topAnchor, constant: -8),
             seekBar.topAnchor.constraint(equalTo: speedButton.bottomAnchor, constant: 8),
 
-            rotateButton.trailingAnchor.constraint(equalTo: speedButton.leadingAnchor, constant: -8),
-             rotateButton.centerYAnchor.constraint(equalTo: speedButton.centerYAnchor),
-             rotateButton.widthAnchor.constraint(equalToConstant: 30),
-             rotateButton.heightAnchor.constraint(equalToConstant: 30)
+            rotateButton.trailingAnchor.constraint(equalTo: speedButton.leadingAnchor, constant: -12),
+            rotateButton.centerYAnchor.constraint(equalTo: speedButton.centerYAnchor),
+            rotateButton.widthAnchor.constraint(equalToConstant: 30),
+            rotateButton.heightAnchor.constraint(equalToConstant: 30)
         ])
 
         // タップジェスチャーの追加

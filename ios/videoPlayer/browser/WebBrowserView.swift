@@ -102,27 +102,39 @@ struct WebBrowserView: View {
                     .padding()
                 }
             }
-            // ストリーム検出ボタン（フローティング）
+            // ストリーム検出パネル（フローティング）
             if !store.detectedStreams.isEmpty {
-                HStack {
-                    Button {
-                        if let firstStream = store.detectedStreams.first {
-                            store.send(.playStream(firstStream.url))
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "play.circle.fill")
-                            Text("ストリーム再生 (\(store.detectedStreams.count))")
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                        .shadow(radius: 3)
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("検出したストリーム: \(store.detectedStreams.count)件")
+                            .font(.headline)
+                        Spacer()
                     }
-                    Spacer()
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(store.detectedStreams) { stream in
+                                StreamItemView(
+                                    stream: stream,
+                                    isDownloading: store.downloadingVideoURL == stream.url,
+                                    progress: store.downloadProgress,
+                                    onPlay: {
+                                        store.send(.playStream(stream.url))
+                                    },
+                                    onDownload: {
+                                        store.send(.downloadVideo(stream.url))
+                                    }
+                                )
+                            }
+                        }
+                        .padding()
+                    }
                 }
+                .background(Color(.systemBackground))
+                .cornerRadius(12)
+                .shadow(radius: 5)
                 .padding()
             }
         }
@@ -193,6 +205,85 @@ struct VideoItemRow: View {
     }
 }
 
+// MARK: - Stream Item View
+
+struct StreamItemView: View {
+    let stream: WebBrowser.State.DetectedStream
+    let isDownloading: Bool
+    let progress: Double
+    let onPlay: () -> Void
+    let onDownload: () -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // ストリームタイプ表示
+            Text(stream.type.rawValue)
+                .font(.caption)
+                .fontWeight(.bold)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(typeColor)
+                .foregroundColor(.white)
+                .cornerRadius(4)
+
+            // URL（短縮表示）
+            Text(shortenedURL)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .frame(width: 100)
+
+            if isDownloading {
+                ProgressView(value: progress)
+                    .frame(width: 80)
+                Text("\(Int(progress * 100))%")
+                    .font(.caption2)
+            } else {
+                // ボタン
+                HStack(spacing: 12) {
+                    Button(action: onPlay) {
+                        Image(systemName: "play.fill")
+                            .foregroundColor(.white)
+                            .frame(width: 36, height: 36)
+                            .background(Color.green)
+                            .cornerRadius(18)
+                    }
+
+                    Button(action: onDownload) {
+                        Image(systemName: "arrow.down")
+                            .foregroundColor(.white)
+                            .frame(width: 36, height: 36)
+                            .background(Color.blue)
+                            .cornerRadius(18)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+
+    private var typeColor: Color {
+        switch stream.type {
+        case .hls:
+            return .orange
+        case .dash:
+            return .purple
+        case .mp4:
+            return .blue
+        }
+    }
+
+    private var shortenedURL: String {
+        let url = stream.url
+        if let lastComponent = URL(string: url)?.lastPathComponent, !lastComponent.isEmpty {
+            return lastComponent
+        }
+        return String(url.suffix(20))
+    }
+}
+
 // MARK: - WKWebView Representable
 
 struct WebViewRepresentable: UIViewRepresentable {
@@ -201,7 +292,10 @@ struct WebViewRepresentable: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
+        // ユーザーアクションなしでの自動再生を防ぐ
+        configuration.mediaTypesRequiringUserActionForPlayback = [.all]
+        // 全画面再生を無効化
+        configuration.allowsPictureInPictureMediaPlayback = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -259,7 +353,19 @@ struct WebViewRepresentable: UIViewRepresentable {
 
         // ユニバーサルリンク（他アプリへの遷移）を防ぐ
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
-            // 常にブラウザ内で開く（外部アプリに飛ばさない）
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.allow, preferences)
+                return
+            }
+
+            // リンクタップの場合、ユニバーサルリンクを回避するために手動でロード
+            if navigationAction.navigationType == .linkActivated {
+                decisionHandler(.cancel, preferences)
+                // 直接URLをロードすることでユニバーサルリンクを回避
+                webView.load(URLRequest(url: url))
+                return
+            }
+
             decisionHandler(.allow, preferences)
         }
 
@@ -333,8 +439,25 @@ struct WebViewRepresentable: UIViewRepresentable {
 // MARK: - JavaScript for Video Detection
 
 private let videoDetectionScript = """
+// 動画の全画面を無効化
+function disableFullscreen() {
+    document.querySelectorAll('video').forEach(function(video) {
+        // webkit全画面を無効化
+        video.webkitEnterFullscreen = function() {};
+        video.webkitExitFullscreen = function() {};
+        // 全画面ボタンを非表示にするスタイルを追加
+        video.controlsList = 'nofullscreen';
+        // playsinline属性を追加
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+    });
+}
+
 function detectVideos() {
     var videos = [];
+
+    // 全画面を無効化
+    disableFullscreen();
 
     // <video> タグを検出
     document.querySelectorAll('video').forEach(function(video) {
@@ -399,6 +522,7 @@ function getVideoType(src) {
 
 // MutationObserver で動的に追加された動画も検出
 var observer = new MutationObserver(function(mutations) {
+    disableFullscreen();
     detectVideos();
 });
 
@@ -406,6 +530,9 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+
+// 初期実行
+disableFullscreen();
 """
 
 // MARK: - JavaScript for Stream Detection

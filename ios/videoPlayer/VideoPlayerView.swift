@@ -32,42 +32,50 @@ struct VideoPlayerView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
                 // ビデオプレーヤー
-                CustomVideoPlayerView(
-                    player: player,
-                    isPlaying: viewStore.isPlaying,
-                    onReady: {
-                        viewStore.send(.player(.ready))
-                        if let duration = player.currentItem?.duration.seconds, !duration.isNaN {
-                            viewStore.send(.updateDuration(duration))
-                        }
-                    },
-                    onPlay: { viewStore.send(.player(.play)) },
-                    onPause: { viewStore.send(.player(.pause)) },
-                    onFinish: { viewStore.send(.player(.finished)) },
-                    onTimeUpdate: { _ in }
-                )
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: videoPlayerHeight(for: geometry)
-                )
-                .ignoresSafeArea(shouldIgnoreSafeArea())
+                ZStack(alignment: .topLeading) {
+                    CustomVideoPlayerView(
+                        player: player,
+                        isPlaying: viewStore.isPlaying,
+                        onReady: {
+                            viewStore.send(.player(.ready))
+                            if let duration = player.currentItem?.duration.seconds, !duration.isNaN {
+                                viewStore.send(.updateDuration(duration))
+                            }
+                        },
+                        onPlay: { viewStore.send(.player(.play)) },
+                        onPause: { viewStore.send(.player(.pause)) },
+                        onFinish: { viewStore.send(.player(.finished)) },
+                        onTimeUpdate: { _ in }
+                    )
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: isPortraitMode() ? geometry.size.width * 9 / 16 : .infinity
+                    )
 
-                // 閉じるボタン
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: closeButtonSize()))
-                        .foregroundColor(.white)
-                        .frame(width: closeButtonFrameSize(), height: closeButtonFrameSize())
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
+                    // 閉じるボタン
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: closeButtonSize()))
+                            .foregroundColor(.white)
+                            .frame(width: closeButtonFrameSize(), height: closeButtonFrameSize())
+                            .background(Color.black.opacity(0.3))
+                            .clipShape(Circle())
+                    }
+                    .padding(.top, 16)
+                    .padding(.leading, 16)
                 }
-                .padding(.top, closeButtonTopPadding(geometry))
-                .padding(.leading, closeButtonLeadingPadding())
+
+                // 縦向き時は下に余白
+                if isPortraitMode() {
+                    Spacer()
+                }
             }
+            .background(Color.black)
+            .ignoresSafeArea(edges: isPortraitMode() ? [] : .all)
             .onDisappear {
                 if UIDevice.current.orientation.isLandscape {
                     UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")

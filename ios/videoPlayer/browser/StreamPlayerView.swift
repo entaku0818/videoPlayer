@@ -13,84 +13,46 @@ struct StreamPlayerView: View {
     let onDismiss: () -> Void
 
     @State private var player: AVPlayer?
-    @State private var isPlaying = false
-    @State private var showControls = true
     @State private var errorMessage: String?
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                if let player = player {
-                    AVPlayerViewRepresentable(player: player)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation {
-                                showControls.toggle()
-                            }
-                        }
-                } else if let error = errorMessage {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 48))
-                            .foregroundColor(.yellow)
-                        Text(error)
+            if let player = player {
+                AVPlayerViewRepresentable(player: player)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = errorMessage {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 48))
+                        .foregroundColor(.yellow)
+                    Text(error)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+            }
+
+            // 閉じるボタン（左上）
+            VStack {
+                HStack {
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
                             .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
+                            .shadow(radius: 3)
                     }
                     .padding()
-                } else {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(.white)
+                    Spacer()
                 }
-
-                // Controls overlay
-                if showControls {
-                    VStack {
-                        // Top bar
-                        HStack {
-                            Button {
-                                onDismiss()
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .background(Color.black.opacity(0.5))
-                                    .clipShape(Circle())
-                            }
-
-                            Spacer()
-
-                            // PiP button (iOS 14+)
-                            if AVPictureInPictureController.isPictureInPictureSupported() {
-                                Button {
-                                    // PiP is handled automatically by VideoPlayer
-                                } label: {
-                                    Image(systemName: "pip.enter")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .padding()
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                }
-                            }
-                        }
-                        .padding()
-
-                        Spacer()
-
-                        // Stream URL info
-                        Text(streamURL)
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                            .lineLimit(1)
-                            .padding(.horizontal)
-                            .padding(.bottom)
-                    }
-                }
+                Spacer()
             }
         }
         .onAppear {
@@ -114,7 +76,6 @@ struct StreamPlayerView: View {
 
         // 自動再生
         avPlayer.play()
-        isPlaying = true
 
         // エラー監視
         NotificationCenter.default.addObserver(
@@ -133,19 +94,44 @@ struct StreamPlayerView: View {
 
 // MARK: - AVPlayer UIViewRepresentable
 
-struct AVPlayerViewRepresentable: UIViewControllerRepresentable {
+struct AVPlayerViewRepresentable: UIViewRepresentable {
     let player: AVPlayer
 
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.allowsPictureInPicturePlayback = true
-        controller.showsPlaybackControls = true
-        return controller
+    func makeUIView(context: Context) -> PlayerUIView {
+        let view = PlayerUIView()
+        view.player = player
+        return view
     }
 
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        uiViewController.player = player
+    func updateUIView(_ uiView: PlayerUIView, context: Context) {
+        uiView.player = player
+    }
+}
+
+class PlayerUIView: UIView {
+    private var playerLayer: AVPlayerLayer?
+
+    var player: AVPlayer? {
+        didSet {
+            setupPlayerLayer()
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        playerLayer?.frame = bounds
+    }
+
+    private func setupPlayerLayer() {
+        playerLayer?.removeFromSuperlayer()
+
+        guard let player = player else { return }
+
+        let layer = AVPlayerLayer(player: player)
+        layer.videoGravity = .resizeAspect
+        layer.frame = bounds
+        self.layer.addSublayer(layer)
+        self.playerLayer = layer
     }
 }
 
