@@ -235,8 +235,8 @@ class VideoPlayerViewController: AVPlayerViewController {
             seekBar.bottomAnchor.constraint(equalTo: currentTimeLabel.topAnchor, constant: -8),
             seekBar.topAnchor.constraint(equalTo: speedButton.bottomAnchor, constant: 8),
 
-            rotateButton.trailingAnchor.constraint(equalTo: speedButton.leadingAnchor, constant: -12),
-            rotateButton.centerYAnchor.constraint(equalTo: speedButton.centerYAnchor),
+            rotateButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+            rotateButton.bottomAnchor.constraint(equalTo: seekBar.topAnchor, constant: -8),
             rotateButton.widthAnchor.constraint(equalToConstant: 30),
             rotateButton.heightAnchor.constraint(equalToConstant: 30)
         ])

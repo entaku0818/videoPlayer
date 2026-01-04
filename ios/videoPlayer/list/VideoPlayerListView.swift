@@ -83,18 +83,27 @@ struct VideoPlayerListView: View {
                     }
                 }
                 .sheet(
-                    isPresented: .constant(viewStore.isShowingVideoPicker)
+                    isPresented: viewStore.binding(
+                        get: \.isShowingVideoPicker,
+                        send: { _ in .closeVideoPicker }
+                    )
                 ) {
                     VideoPicker(store: store)
                 }
                 .sheet(
-                    isPresented: .constant(viewStore.isShowingURLInput)
+                    isPresented: viewStore.binding(
+                        get: \.isShowingURLInput,
+                        send: { _ in .closeURLInput }
+                    )
                 ) {
                     URLInputSheet(store: store)
                 }
                 .alert(
                     "エラー",
-                    isPresented: .constant(viewStore.downloadError != nil),
+                    isPresented: viewStore.binding(
+                        get: { $0.downloadError != nil },
+                        send: { _ in .clearDownloadError }
+                    ),
                     actions: {
                         Button("OK") {
                             viewStore.send(.clearDownloadError)
