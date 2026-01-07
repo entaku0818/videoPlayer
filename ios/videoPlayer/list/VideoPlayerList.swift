@@ -27,6 +27,17 @@ struct VideoPlayerList: Reducer {
             let title: String
             let duration: Double
             let createdAt: Date
+            let lastPlaybackPosition: Double
+            let lastPlayedAt: Date?
+
+            var playbackProgress: Double {
+                guard duration > 0 else { return 0 }
+                return lastPlaybackPosition / duration
+            }
+
+            var canResumePlayback: Bool {
+                lastPlaybackPosition > 5 && playbackProgress < 0.95
+            }
         }
     }
 
@@ -74,7 +85,9 @@ struct VideoPlayerList: Reducer {
                             fileName: $0.fileName,
                             title: $0.title,
                             duration: $0.duration,
-                            createdAt: $0.createdAt
+                            createdAt: $0.createdAt,
+                            lastPlaybackPosition: $0.lastPlaybackPosition,
+                            lastPlayedAt: $0.lastPlayedAt
                         )
                     }
                 )

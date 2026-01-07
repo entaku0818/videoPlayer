@@ -253,20 +253,62 @@ struct VideoRowView: View {
 
     var body: some View {
         HStack {
-            if let url = video.fileName.documentDirectoryURL() {
-                VideoThumbnail(url: url)
-            } else {
-                Rectangle()
-                    .fill(Color.gray)
+            ZStack(alignment: .bottomLeading) {
+                if let url = video.fileName.documentDirectoryURL() {
+                    VideoThumbnail(url: url)
+                } else {
+                    Rectangle()
+                        .fill(Color.gray)
+                        .frame(width: 120, height: 80)
+                        .cornerRadius(8)
+                }
+
+                // 再生進捗バー
+                if video.playbackProgress > 0 {
+                    GeometryReader { geometry in
+                        VStack {
+                            Spacer()
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.5))
+                                    .frame(height: 3)
+                                Rectangle()
+                                    .fill(Color.red)
+                                    .frame(width: geometry.size.width * video.playbackProgress, height: 3)
+                            }
+                        }
+                    }
                     .frame(width: 120, height: 80)
+                    .cornerRadius(8)
+                }
+
+                // 続きから再生マーク
+                if video.canResumePlayback {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundColor(.white)
+                        .font(.system(size: 24))
+                        .shadow(radius: 2)
+                        .frame(width: 120, height: 80)
+                }
             }
+            .frame(width: 120, height: 80)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(video.title)
                     .font(.headline)
+                    .lineLimit(2)
 
-                Text(formatDuration(video.duration))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text(formatDuration(video.duration))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    if video.canResumePlayback {
+                        Text("・\(formatDuration(video.lastPlaybackPosition))まで視聴")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
 
                 Text(formatDate(video.createdAt))
                     .font(.caption2)
@@ -312,14 +354,18 @@ struct VideoPlayerListView_Previews: PreviewProvider {
                             fileName: "sample_video.mp4",
                             title: "サンプルビデオ 1",
                             duration: 185,
-                            createdAt: Date()
+                            createdAt: Date(),
+                            lastPlaybackPosition: 60,
+                            lastPlayedAt: Date()
                         ),
                         .init(
                             id: UUID(),
                             fileName: "another_video.mp4",
                             title: "サンプルビデオ 2",
                             duration: 260,
-                            createdAt: Date().addingTimeInterval(-86400)
+                            createdAt: Date().addingTimeInterval(-86400),
+                            lastPlaybackPosition: 0,
+                            lastPlayedAt: nil
                         )
                     ],
                     isShowingVideoPicker: false, isLoading: false
@@ -339,7 +385,9 @@ struct VideoRowView_Previews: PreviewProvider {
                     fileName: "sample_video.mp4",
                     title: "サンプルビデオ",
                     duration: 185,
-                    createdAt: Date()
+                    createdAt: Date(),
+                    lastPlaybackPosition: 90,
+                    lastPlayedAt: Date()
                 )
             )
         }

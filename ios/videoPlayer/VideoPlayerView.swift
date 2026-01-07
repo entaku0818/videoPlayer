@@ -51,7 +51,9 @@ struct VideoPlayerView: View {
                         onPlay: { viewStore.send(.player(.play)) },
                         onPause: { viewStore.send(.player(.pause)) },
                         onFinish: { viewStore.send(.player(.finished)) },
-                        onTimeUpdate: { _ in }
+                        onTimeUpdate: { time in
+                            viewStore.send(.updateCurrentTime(time))
+                        }
                     )
                     .frame(
                         maxWidth: .infinity,
@@ -60,6 +62,7 @@ struct VideoPlayerView: View {
 
                     // 閉じるボタン
                     Button(action: {
+                        viewStore.send(.savePlaybackPosition)
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
@@ -88,12 +91,42 @@ struct VideoPlayerView: View {
                 loadVideoMetadata()
             }
             .onDisappear {
+                viewStore.send(.savePlaybackPosition)
                 if UIDevice.current.orientation.isLandscape {
                     UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
                 }
             }
+            .onChange(of: viewStore.currentTime) { _, newTime in
+                // 続きから再生が選択された場合、プレーヤーをシーク
+                if newTime > 0 && newTime == viewStore.lastPlaybackPosition {
+                    let time = CMTime(seconds: newTime, preferredTimescale: 600)
+                    player.seek(to: time)
+                }
+            }
+            .alert(
+                "続きから再生",
+                isPresented: viewStore.binding(
+                    get: \.showResumeAlert,
+                    send: .dismissResumeAlert
+                )
+            ) {
+                Button("続きから再生") {
+                    viewStore.send(.resumeFromLastPosition)
+                }
+                Button("最初から再生", role: .cancel) {
+                    viewStore.send(.startFromBeginning)
+                }
+            } message: {
+                Text("\(formatTime(viewStore.lastPlaybackPosition)) から再生を再開しますか？")
+            }
             .navigationBarBackButtonHidden(true)
         }
+    }
+
+    private func formatTime(_ time: Double) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     private func loadVideoMetadata() {

@@ -11,6 +11,8 @@ struct CoreDataClient {
     var fetchVideos: () async throws -> [SavedVideoEntity]
     var saveVideo: (URL, String, Double) async throws -> Void
     var deleteVideo: (UUID) async throws -> Void
+    var updatePlaybackPosition: (UUID, Double) async throws -> Void
+    var getPlaybackPosition: (UUID) async throws -> Double
 }
 
 // CoreDataクライアントの実装
@@ -37,7 +39,9 @@ extension CoreDataClient: DependencyKey {
                         fileName: fileName,
                         title: title,
                         duration: video.duration,
-                        createdAt: createdAt
+                        createdAt: createdAt,
+                        lastPlaybackPosition: video.lastPlaybackPosition,
+                        lastPlayedAt: video.lastPlayedAt
                     )
                 }
             }
@@ -69,6 +73,32 @@ extension CoreDataClient: DependencyKey {
                     try context.save()
                 }
             }
+        },
+        updatePlaybackPosition: { id, position in
+            let context = PersistenceController.shared.container.viewContext
+
+            try await context.perform {
+                let request = NSFetchRequest<SavedVideo>(entityName: "SavedVideo")
+                request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+
+                let videos = try context.fetch(request)
+                if let video = videos.first {
+                    video.lastPlaybackPosition = position
+                    video.lastPlayedAt = Date()
+                    try context.save()
+                }
+            }
+        },
+        getPlaybackPosition: { id in
+            let context = PersistenceController.shared.container.viewContext
+
+            return try await context.perform {
+                let request = NSFetchRequest<SavedVideo>(entityName: "SavedVideo")
+                request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+
+                let videos = try context.fetch(request)
+                return videos.first?.lastPlaybackPosition ?? 0
+            }
         }
     )
 }
@@ -82,26 +112,34 @@ extension CoreDataClient: TestDependencyKey {
                     fileName: "test1.mp4",
                     title: "テスト動画1",
                     duration: 180.0,
-                    createdAt: Date()
+                    createdAt: Date(),
+                    lastPlaybackPosition: 60.0,
+                    lastPlayedAt: Date()
                 ),
                 SavedVideoEntity(
                     id: UUID(),
                     fileName: "test2.mp4",
                     title: "テスト動画2",
                     duration: 240.0,
-                    createdAt: Date().addingTimeInterval(-86400)
+                    createdAt: Date().addingTimeInterval(-86400),
+                    lastPlaybackPosition: 0,
+                    lastPlayedAt: nil
                 ),
                 SavedVideoEntity(
                     id: UUID(),
                     fileName: "test3.mp4",
                     title: "テスト動画3",
                     duration: 300.0,
-                    createdAt: Date().addingTimeInterval(-172800)
+                    createdAt: Date().addingTimeInterval(-172800),
+                    lastPlaybackPosition: 150.0,
+                    lastPlayedAt: Date().addingTimeInterval(-3600)
                 )
             ]
         },
         saveVideo: { _, _, _ in },
-        deleteVideo: { _ in }
+        deleteVideo: { _ in },
+        updatePlaybackPosition: { _, _ in },
+        getPlaybackPosition: { _ in 0 }
     )
 
     static let testValue = previewValue
