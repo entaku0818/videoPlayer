@@ -1,2 +1,10 @@
 ios/videoPlayer.xcodeproj/xcuserdata/entaku.xcuserdatad
 ios/videoPlayer.xcodeproj/project.xcworkspace/xcuserdata/entaku.xcuserdatad
+
+# Fastlane
+ios/fastlane/api_key.json
+ios/fastlane/AuthKey_*.p8
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/screenshots/**/*.png
+ios/fastlane/test_output

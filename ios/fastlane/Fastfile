@@ -1,0 +1,74 @@
+# frozen_string_literal: true
+
+default_platform(:ios)
+
+platform :ios do
+  # App Store Connect API Key認証
+  def api_key
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_filepath: ENV["APP_STORE_CONNECT_API_KEY_KEY_FILEPATH"],
+      duration: 1200,
+      in_house: false
+    )
+  end
+
+  desc "メタデータをApp Store Connectからダウンロード"
+  lane :download_metadata do
+    sh("fastlane deliver download_metadata --app_identifier com.entaku.smartVideoPlayer --api_key_path ./fastlane/api_key.json --force")
+  end
+
+  desc "スクリーンショットをダウンロード"
+  lane :download_screenshots do
+    sh("fastlane deliver download_screenshots --app_identifier com.entaku.smartVideoPlayer --api_key_path ./fastlane/api_key.json --force")
+  end
+
+  desc "TestFlightにアップロード"
+  lane :beta do
+    api_key
+    build_app(
+      scheme: "videoPlayer",
+      export_method: "app-store"
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "App Storeにリリース"
+  lane :release do
+    api_key
+    build_app(
+      scheme: "videoPlayer",
+      export_method: "app-store"
+    )
+    deliver(
+      submit_for_review: false,
+      force: true
+    )
+  end
+
+  desc "メタデータのみアップロード"
+  lane :upload_metadata do
+    api_key
+    deliver(
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
+
+  desc "フルリリース（ビルド + メタデータ + 提出）"
+  lane :full_release do
+    api_key
+    build_app(
+      scheme: "videoPlayer",
+      export_method: "app-store"
+    )
+    deliver(
+      submit_for_review: true,
+      force: true
+    )
+  end
+end

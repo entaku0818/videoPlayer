@@ -1,0 +1,38 @@
+"Smart Video Player - Personal Media Manager" is a next-generation video player that smartly manages and comfortably plays your precious videos. As a personal video management solution that combines simple, intuitive operation with advanced features, it enriches your video life.
+
+Easy Video Management
+- Incredibly easy to add and organize videos with an intuitive interface
+- Efficient management system allowing multiple video selection and addition
+- Visual thumbnail preview for easy-to-understand video listing
+
+Smart Playback Features
+- Optimized playback screen for both portrait and landscape orientations
+- Comfortable viewing experience with smooth rotation handling
+- Intuitive playback controls (play/pause, volume adjustment)
+- Automatic UI adjustment based on screen brightness
+
+Privacy and Security
+- Secure video storage in local storage
+- Privacy-focused design with no unnecessary external communication
+- Complete integration with standard system security features
+- Design philosophy prioritizing data protection
+
+Recommended for Those Who
+- Want to organize their personal video collection
+- Prioritize privacy
+- Look for a simple and easy-to-use video player
+- Want to safely manage precious video memories
+- Seek a comfortable video viewing environment
+
+Main Uses
+- Management and playback of personally recorded videos
+- Organization of memorable video collections
+- Daily video viewing
+- Management of learning videos
+- Building a private video library
+
+This is a video player that combines simplicity and functionality while ensuring peace of mind. We provide a comfortable video management and playback environment while prioritizing privacy.
+
+As the optimal solution for smartly managing and comfortably enjoying your precious video collection, we support your daily video life.
+
+Download now and start a new video viewing experience.
