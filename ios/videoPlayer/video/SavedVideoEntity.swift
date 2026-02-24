@@ -14,6 +14,10 @@ struct SavedVideoEntity: Identifiable, Equatable {
     let createdAt: Date
     let lastPlaybackPosition: Double
     let lastPlayedAt: Date?
+    let sourceURL: String?
+    let videoType: String?
+
+    var isLocalVideo: Bool { videoType == nil || videoType == "local" }
 
     // 再生進捗（0.0〜1.0）
     var playbackProgress: Double {

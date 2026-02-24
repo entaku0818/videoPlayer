@@ -10,6 +10,7 @@ import Dependencies
 struct CoreDataClient {
     var fetchVideos: () async throws -> [SavedVideoEntity]
     var saveVideo: (URL, String, Double) async throws -> Void
+    var saveSNSVideo: (String, String, String) async throws -> Void
     var deleteVideo: (UUID) async throws -> Void
     var updatePlaybackPosition: (UUID, Double) async throws -> Void
     var getPlaybackPosition: (UUID) async throws -> Double
@@ -41,7 +42,9 @@ extension CoreDataClient: DependencyKey {
                         duration: video.duration,
                         createdAt: createdAt,
                         lastPlaybackPosition: video.lastPlaybackPosition,
-                        lastPlayedAt: video.lastPlayedAt
+                        lastPlayedAt: video.lastPlayedAt,
+                        sourceURL: video.sourceURL,
+                        videoType: video.videoType
                     )
                 }
             }
@@ -55,6 +58,22 @@ extension CoreDataClient: DependencyKey {
                 video.fileName = url.lastPathComponent
                 video.title = title
                 video.duration = duration
+                video.createdAt = Date()
+
+                try context.save()
+            }
+        },
+        saveSNSVideo: { sourceURL, title, videoType in
+            let context = PersistenceController.shared.container.viewContext
+
+            try await context.perform {
+                let video = SavedVideo(context: context)
+                video.id = UUID()
+                video.fileName = sourceURL
+                video.sourceURL = sourceURL
+                video.videoType = videoType
+                video.title = title
+                video.duration = 0
                 video.createdAt = Date()
 
                 try context.save()
@@ -114,7 +133,9 @@ extension CoreDataClient: TestDependencyKey {
                     duration: 180.0,
                     createdAt: Date(),
                     lastPlaybackPosition: 60.0,
-                    lastPlayedAt: Date()
+                    lastPlayedAt: Date(),
+                    sourceURL: nil,
+                    videoType: "local"
                 ),
                 SavedVideoEntity(
                     id: UUID(),
@@ -123,20 +144,25 @@ extension CoreDataClient: TestDependencyKey {
                     duration: 240.0,
                     createdAt: Date().addingTimeInterval(-86400),
                     lastPlaybackPosition: 0,
-                    lastPlayedAt: nil
+                    lastPlayedAt: nil,
+                    sourceURL: nil,
+                    videoType: "local"
                 ),
                 SavedVideoEntity(
                     id: UUID(),
-                    fileName: "test3.mp4",
-                    title: "テスト動画3",
-                    duration: 300.0,
+                    fileName: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title: "YouTube動画",
+                    duration: 0,
                     createdAt: Date().addingTimeInterval(-172800),
-                    lastPlaybackPosition: 150.0,
-                    lastPlayedAt: Date().addingTimeInterval(-3600)
+                    lastPlaybackPosition: 0,
+                    lastPlayedAt: nil,
+                    sourceURL: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    videoType: "youtube"
                 )
             ]
         },
         saveVideo: { _, _, _ in },
+        saveSNSVideo: { _, _, _ in },
         deleteVideo: { _ in },
         updatePlaybackPosition: { _, _ in },
         getPlaybackPosition: { _ in 0 }
