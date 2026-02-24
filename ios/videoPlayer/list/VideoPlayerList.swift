@@ -29,6 +29,10 @@ struct VideoPlayerList: Reducer {
             let createdAt: Date
             let lastPlaybackPosition: Double
             let lastPlayedAt: Date?
+            let sourceURL: String?
+            let videoType: String?
+
+            var isLocalVideo: Bool { videoType == nil || videoType == "local" }
 
             var playbackProgress: Double {
                 guard duration > 0 else { return 0 }
@@ -60,6 +64,7 @@ struct VideoPlayerList: Reducer {
         case downloadCompleted(URL)
         case downloadFailed(String)
         case clearDownloadError
+        case saveSNSVideo(URL, String)
     }
 
     @Dependency(\.coreDataClient) var coreDataClient
@@ -87,7 +92,9 @@ struct VideoPlayerList: Reducer {
                             duration: $0.duration,
                             createdAt: $0.createdAt,
                             lastPlaybackPosition: $0.lastPlaybackPosition,
-                            lastPlayedAt: $0.lastPlayedAt
+                            lastPlayedAt: $0.lastPlayedAt,
+                            sourceURL: $0.sourceURL,
+                            videoType: $0.videoType
                         )
                     }
                 )
@@ -168,9 +175,16 @@ struct VideoPlayerList: Reducer {
                     return .none
                 }
 
+                state.isShowingURLInput = false
+
+                if let snsType = detectSNSType(from: url) {
+                    return .run { send in
+                        await send(.saveSNSVideo(url, snsType))
+                    }
+                }
+
                 state.isDownloading = true
                 state.downloadProgress = 0
-                state.isShowingURLInput = false
 
                 return .run { send in
                     do {
@@ -183,6 +197,17 @@ struct VideoPlayerList: Reducer {
                     } catch {
                         await send(.downloadFailed(error.localizedDescription))
                     }
+                }
+
+            case let .saveSNSVideo(url, videoType):
+                let title = generateSNSTitle(from: url, videoType: videoType)
+                return .run { send in
+                    await send(.videoSaved(
+                        TaskResult {
+                            try await coreDataClient.saveSNSVideo(url.absoluteString, title, videoType)
+                        }
+                    ))
+                    await send(.onAppear)
                 }
 
             case let .downloadProgress(progress):
@@ -214,6 +239,27 @@ struct VideoPlayerList: Reducer {
                 state.downloadError = nil
                 return .none
             }
+        }
+    }
+
+    private func detectSNSType(from url: URL) -> String? {
+        let host = url.host ?? ""
+        if host.contains("youtube.com") || host.contains("youtu.be") { return "youtube" }
+        if host.contains("twitter.com") || host.contains("x.com") { return "twitter" }
+        if host.contains("instagram.com") { return "instagram" }
+        return nil
+    }
+
+    private func generateSNSTitle(from url: URL, videoType: String) -> String {
+        switch videoType {
+        case "youtube":
+            return "YouTube: \(url.path.prefix(40))"
+        case "twitter":
+            return "Twitter/X: \(url.path.prefix(40))"
+        case "instagram":
+            return "Instagram: \(url.path.prefix(40))"
+        default:
+            return url.absoluteString
         }
     }
 }
