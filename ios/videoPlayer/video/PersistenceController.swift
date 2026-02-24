@@ -17,6 +17,11 @@ class PersistenceController {
     init() {
         container = NSPersistentContainer(name: "VideoModel")
 
+        let description = NSPersistentStoreDescription()
+        description.shouldMigrateStoreAutomatically = true
+        description.shouldInferMappingModelAutomatically = true
+        container.persistentStoreDescriptions = [description]
+
         container.loadPersistentStores { description, error in
             if let error = error {
                 print("Core Data failed to load: \(error.localizedDescription)")
