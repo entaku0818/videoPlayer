@@ -23,14 +23,18 @@ struct VideoPlayerListView: View {
                         List {
                             ForEach(viewStore.videos) { video in
                                 NavigationLink {
-                                    VideoPlayerView(
-                                        store: Store(
-                                            initialState: VideoPlayer.State(
-                                                id: video.id, fileName: video.fileName
-                                            ),
-                                            reducer: { VideoPlayer() }
+                                    if video.isLocalVideo {
+                                        VideoPlayerView(
+                                            store: Store(
+                                                initialState: VideoPlayer.State(
+                                                    id: video.id, fileName: video.fileName
+                                                ),
+                                                reducer: { VideoPlayer() }
+                                            )
                                         )
-                                    )
+                                    } else {
+                                        SNSVideoPlayerView(video: video)
+                                    }
                                 } label: {
                                     VideoRowView(video: video)
                                 }
@@ -131,6 +135,13 @@ struct URLInputSheet: View {
     let store: StoreOf<VideoPlayerList>
     @State private var urlText = ""
 
+    private var isSNSURL: Bool {
+        let lower = urlText.lowercased()
+        return lower.contains("youtube.com") || lower.contains("youtu.be")
+            || lower.contains("twitter.com") || lower.contains("x.com")
+            || lower.contains("instagram.com")
+    }
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             NavigationStack {
@@ -145,14 +156,22 @@ struct URLInputSheet: View {
                         .keyboardType(.URL)
                         .padding(.horizontal)
 
-                    Text("MP4, WebM, MOV などの直接リンクを入力してください")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if isSNSURL {
+                        Text("YouTube / Twitter / Instagram のURLはダウンロードせずにリストへ追加します")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    } else {
+                        Text("MP4, WebM, MOV, HLS (.m3u8) などのリンクを入力してください")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
 
                     Spacer()
                 }
                 .padding(.top, 30)
-                .navigationTitle("URLからダウンロード")
+                .navigationTitle("URLから追加")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
@@ -162,7 +181,7 @@ struct URLInputSheet: View {
                     }
 
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("ダウンロード") {
+                        Button(isSNSURL ? "追加" : "ダウンロード") {
                             viewStore.send(.updateURLInput(urlText))
                             viewStore.send(.downloadFromURL)
                         }
@@ -248,23 +267,93 @@ struct VideoThumbnail: View {
     }
 }
 
+struct SNSThumbnailView: View {
+    let video: VideoPlayerList.State.VideoModel
+
+    private var youTubeID: String? {
+        guard let sourceURL = video.sourceURL,
+              let url = URL(string: sourceURL) else { return nil }
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let v = components.queryItems?.first(where: { $0.name == "v" })?.value {
+            return v
+        }
+        if url.host?.contains("youtu.be") == true {
+            return url.pathComponents.count > 1 ? url.pathComponents[1] : nil
+        }
+        return nil
+    }
+
+    var body: some View {
+        ZStack {
+            if video.videoType == "youtube", let id = youTubeID,
+               let thumbnailURL = URL(string: "https://img.youtube.com/vi/\(id)/mqdefault.jpg") {
+                AsyncImage(url: thumbnailURL) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    youTubePlaceholder
+                }
+            } else {
+                snsIconPlaceholder
+            }
+        }
+        .frame(width: 120, height: 80)
+        .cornerRadius(8)
+        .clipped()
+    }
+
+    private var youTubePlaceholder: some View {
+        Rectangle()
+            .fill(Color.red.opacity(0.8))
+            .overlay(
+                Image(systemName: "play.rectangle.fill")
+                    .foregroundColor(.white)
+                    .font(.system(size: 28))
+            )
+    }
+
+    private var snsIconPlaceholder: some View {
+        Rectangle()
+            .fill(snsColor)
+            .overlay(
+                Image(systemName: "globe")
+                    .foregroundColor(.white)
+                    .font(.system(size: 28))
+            )
+    }
+
+    private var snsColor: Color {
+        switch video.videoType {
+        case "youtube": return .red.opacity(0.8)
+        case "twitter": return .blue.opacity(0.8)
+        case "instagram": return .purple.opacity(0.8)
+        default: return .gray.opacity(0.8)
+        }
+    }
+}
+
 struct VideoRowView: View {
     let video: VideoPlayerList.State.VideoModel
 
     var body: some View {
         HStack {
             ZStack(alignment: .bottomLeading) {
-                if let url = video.fileName.documentDirectoryURL() {
-                    VideoThumbnail(url: url)
+                if video.isLocalVideo {
+                    if let url = video.fileName.documentDirectoryURL() {
+                        VideoThumbnail(url: url)
+                    } else {
+                        Rectangle()
+                            .fill(Color.gray)
+                            .frame(width: 120, height: 80)
+                            .cornerRadius(8)
+                    }
                 } else {
-                    Rectangle()
-                        .fill(Color.gray)
-                        .frame(width: 120, height: 80)
-                        .cornerRadius(8)
+                    SNSThumbnailView(video: video)
                 }
 
-                // 再生進捗バー
-                if video.playbackProgress > 0 {
+                // 再生進捗バー（ローカル動画のみ）
+                if video.isLocalVideo && video.playbackProgress > 0 {
                     GeometryReader { geometry in
                         VStack {
                             Spacer()
@@ -282,8 +371,8 @@ struct VideoRowView: View {
                     .cornerRadius(8)
                 }
 
-                // 続きから再生マーク
-                if video.canResumePlayback {
+                // 続きから再生マーク（ローカル動画のみ）
+                if video.isLocalVideo && video.canResumePlayback {
                     Image(systemName: "play.circle.fill")
                         .foregroundColor(.white)
                         .font(.system(size: 24))
@@ -299,14 +388,20 @@ struct VideoRowView: View {
                     .lineLimit(2)
 
                 HStack {
-                    Text(formatDuration(video.duration))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    if video.canResumePlayback {
-                        Text("・\(formatDuration(video.lastPlaybackPosition))まで視聴")
+                    if video.isLocalVideo {
+                        Text(formatDuration(video.duration))
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.secondary)
+
+                        if video.canResumePlayback {
+                            Text("・\(formatDuration(video.lastPlaybackPosition))まで視聴")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    } else {
+                        Text(snsLabel(for: video.videoType))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -329,6 +424,15 @@ struct VideoRowView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    private func snsLabel(for videoType: String?) -> String {
+        switch videoType {
+        case "youtube": return "YouTube"
+        case "twitter": return "Twitter / X"
+        case "instagram": return "Instagram"
+        default: return "SNS動画"
+        }
     }
 }
 
@@ -356,16 +460,20 @@ struct VideoPlayerListView_Previews: PreviewProvider {
                             duration: 185,
                             createdAt: Date(),
                             lastPlaybackPosition: 60,
-                            lastPlayedAt: Date()
+                            lastPlayedAt: Date(),
+                            sourceURL: nil,
+                            videoType: "local"
                         ),
                         .init(
                             id: UUID(),
-                            fileName: "another_video.mp4",
-                            title: "サンプルビデオ 2",
-                            duration: 260,
+                            fileName: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            title: "YouTube動画サンプル",
+                            duration: 0,
                             createdAt: Date().addingTimeInterval(-86400),
                             lastPlaybackPosition: 0,
-                            lastPlayedAt: nil
+                            lastPlayedAt: nil,
+                            sourceURL: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            videoType: "youtube"
                         )
                     ],
                     isShowingVideoPicker: false, isLoading: false
@@ -387,7 +495,22 @@ struct VideoRowView_Previews: PreviewProvider {
                     duration: 185,
                     createdAt: Date(),
                     lastPlaybackPosition: 90,
-                    lastPlayedAt: Date()
+                    lastPlayedAt: Date(),
+                    sourceURL: nil,
+                    videoType: "local"
+                )
+            )
+            VideoRowView(
+                video: .init(
+                    id: UUID(),
+                    fileName: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    title: "YouTube動画",
+                    duration: 0,
+                    createdAt: Date(),
+                    lastPlaybackPosition: 0,
+                    lastPlayedAt: nil,
+                    sourceURL: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    videoType: "youtube"
                 )
             )
         }
