@@ -1,6 +1,7 @@
 Version 1.2.0
 
 [New Features]
-・You can now add YouTube, Twitter/X, and Instagram URLs to your video list and play them in-app
-・SNS videos can be watched without downloading
-・YouTube videos show thumbnail images; Twitter/Instagram videos show platform icons in the list
+・Added support for more video formats
+
+[Improvements]
+・Improved video list display
