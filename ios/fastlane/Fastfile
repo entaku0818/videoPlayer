@@ -52,10 +52,25 @@ platform :ios do
   desc "メタデータのみアップロード"
   lane :upload_metadata do
     api_key
+    version_number = get_version_number(
+      xcodeproj: "videoPlayer.xcodeproj",
+      target: "videoPlayer"
+    )
     deliver(
       skip_binary_upload: true,
       skip_screenshots: true,
-      force: true
+      force: true,
+      app_version: version_number,
+      build_number: "latest",
+      submit_for_review: true,
+      automatic_release: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        export_compliance_platform: "ios"
+      },
+      run_precheck_before_submit: true,
+      precheck_include_in_app_purchases: false
     )
   end
 
