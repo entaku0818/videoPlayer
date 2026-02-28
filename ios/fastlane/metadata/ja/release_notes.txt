@@ -1,1 +1,6 @@
+バージョン 1.2.0
 
+【新機能】
+・YouTube、Twitter/X、InstagramのURLをリストに追加して再生できるようになりました
+・SNS動画はダウンロード不要でそのままアプリ内で視聴できます
+・YouTubeはサムネイル画像、Twitter/Instagramはアイコンでリスト表示します
