@@ -38,7 +38,18 @@ private func downloadDirect(url: URL, progressHandler: @escaping (Double) -> Voi
     let sessionConfig = URLSessionConfiguration.default
     let session = URLSession(configuration: sessionConfig)
 
-    let (tempURL, response) = try await session.download(from: url, delegate: nil)
+    var request = URLRequest(url: url)
+    request.setValue(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        forHTTPHeaderField: "User-Agent"
+    )
+    // googlevideo.com には Referer が必要
+    if url.host?.contains("googlevideo.com") == true {
+        request.setValue("https://www.youtube.com/", forHTTPHeaderField: "Referer")
+        request.setValue("https://www.youtube.com", forHTTPHeaderField: "Origin")
+    }
+
+    let (tempURL, response) = try await session.download(for: request, delegate: nil)
 
     guard let httpResponse = response as? HTTPURLResponse,
           (200...299).contains(httpResponse.statusCode) else {
