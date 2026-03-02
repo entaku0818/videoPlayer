@@ -1,7 +1,12 @@
-Version 1.2.0
+Version 1.3.0
 
 [New Features]
-・Added support for more video formats
+· Swipe down to dismiss the video player
 
 [Improvements]
-・Improved video list display
+· Video player now opens in full screen
+
+[Bug Fixes]
+· Fixed an issue where downloaded videos disappeared after restarting the app
+· Fixed an issue where audio continued playing after closing the player
+· Fixed an issue where thumbnails were not displayed for HLS downloads
