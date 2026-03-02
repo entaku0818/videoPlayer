@@ -17,17 +17,21 @@ class PersistenceController {
     init() {
         container = NSPersistentContainer(name: "VideoModel")
 
-        let description = NSPersistentStoreDescription()
-        description.shouldMigrateStoreAutomatically = true
-        description.shouldInferMappingModelAutomatically = true
-        container.persistentStoreDescriptions = [description]
-
+        // NSPersistentContainer はデフォルトで lightweight migration を有効にしているため
+        // 既存の description を上書きせず、そのまま使う
         container.loadPersistentStores { description, error in
             if let error = error {
                 print("Core Data failed to load: \(error.localizedDescription)")
             }
         }
 
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
+
+    /// テスト用: 外部から container を注入できるイニシャライザ
+    init(container: NSPersistentContainer) {
+        self.container = container
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
     }

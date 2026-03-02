@@ -272,15 +272,31 @@ struct VideoThumbnail: View {
     }
 
     private func generateThumbnail() {
-        let asset = AVAsset(url: url)
-        let imageGenerator = AVAssetImageGenerator(asset: asset)
-        imageGenerator.appliesPreferredTrackTransform = true
+        Task {
+            let asset = AVURLAsset(url: url)
+            // .movpkg などの HLS オフラインアセットはトラック情報を先に非同期ロードする必要がある
+            _ = try? await asset.load(.tracks)
 
-        do {
-            let cgImage = try imageGenerator.copyCGImage(at: .zero, actualTime: nil)
-            thumbnail = UIImage(cgImage: cgImage)
-        } catch {
-            print("Error generating thumbnail: \(error)")
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+            imageGenerator.appliesPreferredTrackTransform = true
+            imageGenerator.maximumSize = CGSize(width: 240, height: 160)
+
+            let time = CMTime(seconds: 1, preferredTimescale: 600)
+            await withCheckedContinuation { continuation in
+                imageGenerator.generateCGImagesAsynchronously(
+                    forTimes: [NSValue(time: time)]
+                ) { _, cgImage, _, result, error in
+                    if result == .succeeded, let cgImage {
+                        let image = UIImage(cgImage: cgImage)
+                        Task { @MainActor in
+                            thumbnail = image
+                        }
+                    } else if let error {
+                        print("[VideoThumbnail] Error: \(error)")
+                    }
+                    continuation.resume()
+                }
+            }
         }
     }
 }
