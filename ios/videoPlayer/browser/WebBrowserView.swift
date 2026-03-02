@@ -140,6 +140,18 @@ struct WebBrowserView: View {
         }
         .navigationTitle("ブラウザ")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    if let urlString = store.currentURL?.absoluteString {
+                        store.send(.downloadVideo(urlString))
+                    }
+                } label: {
+                    Image(systemName: "arrow.down.circle")
+                }
+                .disabled(store.currentURL == nil || store.downloadingVideoURL != nil)
+            }
+        }
         .alert(
             "エラー",
             isPresented: .constant(store.errorMessage != nil),
