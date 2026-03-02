@@ -105,6 +105,32 @@ class VideoPlayerViewController: AVPlayerViewController {
         guard let player = player else { return }
         showsPlaybackControls = false
 
+        // AVAudioSession の状態をログ出力
+        let session = AVAudioSession.sharedInstance()
+        logger.debug("[Audio] category=\(session.category.rawValue) mode=\(session.mode.rawValue) volume=\(session.outputVolume)")
+
+        // アイテムの音声トラックをログ出力（.movpkg など非標準フォーマットのデバッグ用）
+        if let item = player.currentItem {
+            Task {
+                do {
+                    let audioTracks = try await item.asset.loadTracks(withMediaType: .audio)
+                    let videoTracks = try await item.asset.loadTracks(withMediaType: .video)
+                    logger.debug("[Asset] audioTracks=\(audioTracks.count) videoTracks=\(videoTracks.count)")
+                    if audioTracks.isEmpty {
+                        logger.warning("[Asset] 音声トラックなし - HLSストリームに音声が含まれていない可能性あり")
+                    }
+                    // HLS の audible グループ（音声切り替えメニューの存在確認）
+                    if let audibleGroup = try? await item.asset.loadMediaSelectionGroup(for: .audible) {
+                        logger.debug("[Asset] audibleGroup options=\(audibleGroup.options.count)")
+                    } else {
+                        logger.warning("[Asset] audibleGroup なし")
+                    }
+                } catch {
+                    logger.error("[Asset] track load error: \(error)")
+                }
+            }
+        }
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(playerDidFinishPlaying),

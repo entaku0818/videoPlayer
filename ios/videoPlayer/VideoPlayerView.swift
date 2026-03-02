@@ -91,6 +91,7 @@ struct VideoPlayerView: View {
                 loadVideoMetadata()
             }
             .onDisappear {
+                player.pause()
                 viewStore.send(.savePlaybackPosition)
                 if UIDevice.current.orientation.isLandscape {
                     UIDevice.current.setValue(UIDeviceOrientation.portrait.rawValue, forKey: "orientation")
