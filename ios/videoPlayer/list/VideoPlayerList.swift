@@ -65,6 +65,7 @@ struct VideoPlayerList: Reducer {
         case downloadFailed(String)
         case clearDownloadError
         case saveSNSVideo(URL, String)
+        case forceDownloadFromURL
     }
 
     @Dependency(\.coreDataClient) var coreDataClient
@@ -199,6 +200,31 @@ struct VideoPlayerList: Reducer {
                     }
                 }
 
+            case .forceDownloadFromURL:
+                var urlString = state.urlInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
+                    urlString = "https://" + urlString
+                }
+                guard let url = URL(string: urlString) else {
+                    state.downloadError = "無効なURLです"
+                    return .none
+                }
+                state.isShowingURLInput = false
+                state.isDownloading = true
+                state.downloadProgress = 0
+                return .run { send in
+                    do {
+                        let localURL = try await videoDownloader.download(url) { progress in
+                            Task { @MainActor in
+                                await send(.downloadProgress(progress))
+                            }
+                        }
+                        await send(.downloadCompleted(localURL))
+                    } catch {
+                        await send(.downloadFailed(error.localizedDescription))
+                    }
+                }
+
             case let .saveSNSVideo(url, videoType):
                 let title = generateSNSTitle(from: url, videoType: videoType)
                 return .run { send in
@@ -233,6 +259,7 @@ struct VideoPlayerList: Reducer {
                 state.isDownloading = false
                 state.downloadProgress = 0
                 state.downloadError = error
+                print("[VideoPlayerList] Download failed: \(error)")
                 return .none
 
             case .clearDownloadError:

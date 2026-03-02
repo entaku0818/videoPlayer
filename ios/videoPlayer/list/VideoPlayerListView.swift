@@ -157,11 +157,27 @@ struct URLInputSheet: View {
                         .padding(.horizontal)
 
                     if isSNSURL {
-                        Text("YouTube / Twitter / Instagram のURLはダウンロードせずにリストへ追加します")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 12) {
+                            Button {
+                                viewStore.send(.updateURLInput(urlText))
+                                viewStore.send(.downloadFromURL)
+                            } label: {
+                                Label("リストに追加（アプリ内再生）", systemImage: "plus.circle")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
                             .padding(.horizontal)
+
+                            Button {
+                                viewStore.send(.updateURLInput(urlText))
+                                viewStore.send(.forceDownloadFromURL)
+                            } label: {
+                                Label("ダウンロードを試みる", systemImage: "arrow.down.circle")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .padding(.horizontal)
+                        }
                     } else {
                         Text("MP4, WebM, MOV, HLS (.m3u8) などのリンクを入力してください")
                             .font(.caption)
@@ -180,12 +196,14 @@ struct URLInputSheet: View {
                         }
                     }
 
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(isSNSURL ? "追加" : "ダウンロード") {
-                            viewStore.send(.updateURLInput(urlText))
-                            viewStore.send(.downloadFromURL)
+                    if !isSNSURL {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("ダウンロード") {
+                                viewStore.send(.updateURLInput(urlText))
+                                viewStore.send(.downloadFromURL)
+                            }
+                            .disabled(urlText.isEmpty)
                         }
-                        .disabled(urlText.isEmpty)
                     }
                 }
             }
