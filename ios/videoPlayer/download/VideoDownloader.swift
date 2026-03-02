@@ -51,13 +51,21 @@ private func downloadDirect(url: URL, progressHandler: @escaping (Double) -> Voi
 
     let (tempURL, response) = try await session.download(for: request, delegate: nil)
 
-    guard let httpResponse = response as? HTTPURLResponse,
-          (200...299).contains(httpResponse.statusCode) else {
+    guard let httpResponse = response as? HTTPURLResponse else {
         throw DownloadError.invalidResponse
     }
 
-    // Content-Typeを確認
     let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
+    let contentLength = httpResponse.value(forHTTPHeaderField: "Content-Length") ?? "unknown"
+    print("[VideoDownloader] URL: \(url.host ?? "")")
+    print("[VideoDownloader] status: \(httpResponse.statusCode)")
+    print("[VideoDownloader] Content-Type: \(contentType)")
+    print("[VideoDownloader] Content-Length: \(contentLength)")
+
+    guard (200...299).contains(httpResponse.statusCode) else {
+        print("[VideoDownloader] Error: invalid status \(httpResponse.statusCode)")
+        throw DownloadError.invalidResponse
+    }
 
     // Documents ディレクトリに保存
     let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -85,7 +93,10 @@ private func downloadDirect(url: URL, progressHandler: @escaping (Double) -> Voi
     // ファイルサイズを確認
     let attributes = try FileManager.default.attributesOfItem(atPath: destinationURL.path)
     let fileSize = attributes[.size] as? Int64 ?? 0
+    print("[VideoDownloader] saved file size: \(fileSize) bytes at \(destinationURL.lastPathComponent)")
     if fileSize < 1000 {
+        let preview = (try? String(contentsOf: destinationURL, encoding: .utf8)) ?? "(binary)"
+        print("[VideoDownloader] notAVideo - content preview: \(preview.prefix(200))")
         try FileManager.default.removeItem(at: destinationURL)
         throw DownloadError.notAVideo
     }
