@@ -20,6 +20,7 @@ struct VideoPlayerView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var videoMetadata: VideoMetadata?
+    @State private var dragOffset: CGFloat = 0
 
     init(store: StoreOf<VideoPlayer>) {
         self.store = store
@@ -87,6 +88,34 @@ struct VideoPlayerView: View {
             }
             .background(Color.black)
             .ignoresSafeArea(edges: isPortraitMode() ? [] : .all)
+            .offset(y: max(0, dragOffset))
+            .opacity(Double(1 - min(dragOffset / 400, 0.6)))
+            .gesture(
+                DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                    .onChanged { value in
+                        // 下方向かつ縦が支配的なスワイプのみ反応（横スワイプのシークと競合しない）
+                        guard value.translation.height > 0,
+                              abs(value.translation.height) > abs(value.translation.width) else { return }
+                        dragOffset = value.translation.height
+                    }
+                    .onEnded { value in
+                        let velocity = value.predictedEndTranslation.height
+                        if dragOffset > 120 || velocity > 400 {
+                            player.pause()
+                            viewStore.send(.savePlaybackPosition)
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                dragOffset = UIScreen.main.bounds.height
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                dismiss()
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                dragOffset = 0
+                            }
+                        }
+                    }
+            )
             .onAppear {
                 loadVideoMetadata()
             }
