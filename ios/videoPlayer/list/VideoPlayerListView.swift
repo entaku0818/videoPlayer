@@ -12,6 +12,7 @@ import WebKit
 
 struct VideoPlayerListView: View {
     let store: StoreOf<VideoPlayerList>
+    @State private var selectedVideo: VideoPlayerList.State.VideoModel?
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -22,22 +23,12 @@ struct VideoPlayerListView: View {
                     } else {
                         List {
                             ForEach(viewStore.videos) { video in
-                                NavigationLink {
-                                    if video.isLocalVideo {
-                                        VideoPlayerView(
-                                            store: Store(
-                                                initialState: VideoPlayer.State(
-                                                    id: video.id, fileName: video.fileName
-                                                ),
-                                                reducer: { VideoPlayer() }
-                                            )
-                                        )
-                                    } else {
-                                        SNSVideoPlayerView(video: video)
-                                    }
+                                Button {
+                                    selectedVideo = video
                                 } label: {
                                     VideoRowView(video: video)
                                 }
+                                .buttonStyle(.plain)
                             }
                             .onDelete { indexSet in
                                 for index in indexSet {
@@ -101,6 +92,20 @@ struct VideoPlayerListView: View {
                     )
                 ) {
                     URLInputSheet(store: store)
+                }
+                .fullScreenCover(item: $selectedVideo) { video in
+                    if video.isLocalVideo {
+                        VideoPlayerView(
+                            store: Store(
+                                initialState: VideoPlayer.State(
+                                    id: video.id, fileName: video.fileName
+                                ),
+                                reducer: { VideoPlayer() }
+                            )
+                        )
+                    } else {
+                        SNSVideoPlayerView(video: video)
+                    }
                 }
                 .alert(
                     "エラー",
