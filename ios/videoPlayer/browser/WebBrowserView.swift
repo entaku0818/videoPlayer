@@ -556,18 +556,37 @@ private let streamDetectionScript = """
 
     function isStreamURL(url) {
         if (!url || typeof url !== 'string') return null;
-        url = url.toLowerCase();
+        var lower = url.toLowerCase();
 
-        if (url.includes('.m3u8') || url.includes('m3u8')) {
+        if (lower.includes('.m3u8') || lower.includes('m3u8')) {
             return 'hls';
         }
-        if (url.includes('.mpd') || url.includes('dash')) {
+        if (lower.includes('.mpd') || lower.includes('dash')) {
             return 'dash';
         }
-        if (url.includes('.mp4') && (url.includes('video') || url.includes('media'))) {
+        if (lower.includes('.mp4') && (lower.includes('video') || lower.includes('media'))) {
+            return 'mp4';
+        }
+        // YouTube の直接動画 URL を検出
+        if (lower.includes('googlevideo.com/videoplayback')) {
             return 'mp4';
         }
         return null;
+    }
+
+    // googlevideo.com URL からベース URL を抽出（セグメント重複を除去）
+    function normalizeGoogleVideoURL(url) {
+        try {
+            var u = new URL(url);
+            if (u.hostname.includes('googlevideo.com')) {
+                // range パラメータを除去して最初のセグメントとして扱う
+                u.searchParams.delete('range');
+                u.searchParams.delete('rn');
+                u.searchParams.delete('rbuf');
+                return u.toString();
+            }
+        } catch(e) {}
+        return url;
     }
 
     function reportStream(url, type) {
@@ -587,7 +606,7 @@ private let streamDetectionScript = """
     XMLHttpRequest.prototype.open = function(method, url) {
         var streamType = isStreamURL(url);
         if (streamType) {
-            reportStream(url, streamType);
+            reportStream(normalizeGoogleVideoURL(url), streamType);
         }
         return originalXHROpen.apply(this, arguments);
     };
@@ -598,7 +617,7 @@ private let streamDetectionScript = """
         var url = typeof input === 'string' ? input : (input.url || '');
         var streamType = isStreamURL(url);
         if (streamType) {
-            reportStream(url, streamType);
+            reportStream(normalizeGoogleVideoURL(url), streamType);
         }
         return originalFetch.apply(this, arguments);
     };
