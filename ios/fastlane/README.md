@@ -55,6 +55,14 @@ App Storeにリリース
 
 メタデータのみアップロード
 
+### ios full_release
+
+```sh
+[bundle exec] fastlane ios full_release
+```
+
+フルリリース（ビルド + メタデータ + 提出）
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
