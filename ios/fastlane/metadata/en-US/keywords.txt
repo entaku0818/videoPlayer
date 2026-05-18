@@ -1,1 +1,1 @@
-video playback
+video,player,mp4,subtitle,speed,offline,mkv,avi,media,folder,local,playback,loop,slideshow,playlist
