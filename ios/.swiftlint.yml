@@ -1,0 +1,25 @@
+# SwiftLint configuration for videoPlayer
+# Lenient baseline: existing code passes as-is; tighten rules incrementally.
+
+excluded:
+  - ci_scripts
+  - fastlane
+  - videoPlayer.xcodeproj
+
+disabled_rules:
+  - line_length
+  - identifier_name
+  - function_body_length
+  - type_body_length
+  - file_length
+  - cyclomatic_complexity
+  - large_tuple
+  - nesting
+  - function_parameter_count
+  - todo
+  - trailing_whitespace
+  - force_cast
+  - force_try
+  - type_name
+  - for_where
+  - opening_brace
