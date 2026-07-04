@@ -12,3 +12,7 @@ ios/fastlane/Preview.html
 ios/fastlane/screenshots/**/*.png
 ios/fastlane/test_output
 firebase-debug.log
+
+# AI tool artifacts (AGENTS.md is an auto-generated copy of CLAUDE.md)
+.agents/
+AGENTS.md
