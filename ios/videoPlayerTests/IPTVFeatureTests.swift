@@ -12,7 +12,7 @@ import ComposableArchitecture
 @MainActor
 final class IPTVPlaylistListTests: XCTestCase {
 
-    private static let fixture = """
+    private nonisolated static let fixture = """
     #EXTM3U url-tvg="https://example.com/epg.xml"
     #EXTINF:-1 tvg-id="a" group-title="News",Alpha
     https://example.com/a.m3u8
@@ -20,7 +20,7 @@ final class IPTVPlaylistListTests: XCTestCase {
     https://example.com/b.m3u8
     """
 
-    private static let date = Date(timeIntervalSince1970: 1_700_000_000)
+    private nonisolated static let date = Date(timeIntervalSince1970: 1_700_000_000)
 
     func testAddFromURLParsesAndSaves() async throws {
         let saved = LockIsolated<[IPTVPlaylist]>([])

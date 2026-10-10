@@ -44,6 +44,10 @@ struct VideoPlayerListView: View {
                 .navigationTitle("Videos")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
+                        SettingsButton()
+                    }
+
+                    ToolbarItem(placement: .navigationBarLeading) {
                         NavigationLink {
                             WebBrowserView(
                                 store: Store(

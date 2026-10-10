@@ -31,6 +31,9 @@ struct IPTVPlaylistListView: View {
             }
             .navigationTitle("IPTV")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    SettingsButton()
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         store.send(.addButtonTapped)
