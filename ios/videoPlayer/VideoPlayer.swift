@@ -21,6 +21,8 @@ struct VideoPlayer: Reducer {
         var currentTime: Double = 0
         var lastPlaybackPosition: Double = 0
         var showResumeAlert: Bool = false
+        /// ロック画面/コントロールセンターに表示するタイトル
+        var title: String = ""
     }
 
     enum Action {

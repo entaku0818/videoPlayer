@@ -387,7 +387,7 @@ struct IPTVPlayerView: View {
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let player = model.player {
-                IPTVPlayerController(player: player)
+                IPTVPlayerController(player: player, title: channel.name)
                     .ignoresSafeArea()
             }
 
@@ -414,17 +414,38 @@ struct IPTVPlayerView: View {
 
 private struct IPTVPlayerController: UIViewControllerRepresentable {
     let player: AVPlayer
+    let title: String
+
+    final class Coordinator {
+        var backgroundPlayback: BackgroundPlaybackCoordinator?
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
         controller.videoGravity = .resizeAspect
+        let backgroundPlayback = BackgroundPlaybackCoordinator(
+            controller: controller,
+            player: player,
+            title: title,
+            onPlay: { [weak player] in player?.play() },
+            onPause: { [weak player] in player?.pause() }
+        )
+        backgroundPlayback.activate()
+        context.coordinator.backgroundPlayback = backgroundPlayback
         return controller
     }
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        if uiViewController.player !== player {
-            uiViewController.player = player
-        }
+        // バックグラウンドで切り離し中は再接続しない（復帰時に BackgroundPlaybackCoordinator が戻す）
+    }
+
+    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
+        coordinator.backgroundPlayback?.invalidate()
+        coordinator.backgroundPlayback = nil
     }
 }

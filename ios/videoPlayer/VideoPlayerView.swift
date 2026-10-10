@@ -54,7 +54,10 @@ struct VideoPlayerView: View {
                         onFinish: { viewStore.send(.player(.finished)) },
                         onTimeUpdate: { time in
                             viewStore.send(.updateCurrentTime(time))
-                        }
+                        },
+                        nowPlayingTitle: viewStore.title.isEmpty
+                            ? (viewStore.fileName as NSString).deletingPathExtension
+                            : viewStore.title
                     )
                     .frame(
                         maxWidth: .infinity,

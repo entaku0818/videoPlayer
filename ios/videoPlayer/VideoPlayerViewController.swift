@@ -62,8 +62,9 @@ class VideoPlayerViewController: AVPlayerViewController {
 
     private var controlsAutoHideTimer: Timer?
     private let controlsAutoHideInterval: TimeInterval = 3.0
+    private var backgroundPlayback: BackgroundPlaybackCoordinator?
 
-    init(player: AVPlayer) {
+    init(player: AVPlayer, nowPlayingTitle: String = "") {
         speedMenu = UIMenu(title: "再生速度", children: [])
 
         super.init(nibName: nil, bundle: nil)
@@ -72,6 +73,19 @@ class VideoPlayerViewController: AVPlayerViewController {
         setupSpeedMenu()
         setupPlayer()
         setupCustomControls()
+        setupBackgroundPlayback(player: player, title: nowPlayingTitle)
+    }
+
+    private func setupBackgroundPlayback(player: AVPlayer, title: String) {
+        let coordinator = BackgroundPlaybackCoordinator(
+            controller: self,
+            player: player,
+            title: title.isEmpty ? "Smart Player" : title,
+            onPlay: { [weak self] in self?.updatePlayback(isPlaying: true) },
+            onPause: { [weak self] in self?.updatePlayback(isPlaying: false) }
+        )
+        coordinator.activate()
+        backgroundPlayback = coordinator
     }
 
     override func viewDidLoad() {
@@ -430,6 +444,7 @@ class VideoPlayerViewController: AVPlayerViewController {
         player?.currentItem?.removeObserver(self, forKeyPath: #keyPath(AVPlayerItem.status))
         NotificationCenter.default.removeObserver(self)
         stopControlsAutoHideTimer()
+        backgroundPlayback?.invalidate()
         logger.debug("VideoPlayerViewController deinitialized")
     }
 
@@ -477,9 +492,10 @@ struct CustomVideoPlayerView: UIViewControllerRepresentable {
     let onPause: () -> Void
     let onFinish: () -> Void
     let onTimeUpdate: (Double) -> Void
+    var nowPlayingTitle: String = ""
 
     func makeUIViewController(context: Context) -> VideoPlayerViewController {
-        let controller = VideoPlayerViewController(player: player)
+        let controller = VideoPlayerViewController(player: player, nowPlayingTitle: nowPlayingTitle)
         controller.onReady = onReady
         controller.onPlay = onPlay
         controller.onPause = onPause

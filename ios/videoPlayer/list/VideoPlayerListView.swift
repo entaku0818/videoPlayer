@@ -98,7 +98,7 @@ struct VideoPlayerListView: View {
                         VideoPlayerView(
                             store: Store(
                                 initialState: VideoPlayer.State(
-                                    id: video.id, fileName: video.fileName
+                                    id: video.id, fileName: video.fileName, title: video.title
                                 ),
                                 reducer: { VideoPlayer() }
                             )
