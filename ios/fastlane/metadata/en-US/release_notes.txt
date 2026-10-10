@@ -1,11 +1,9 @@
-Version 1.4.0
+Version 1.4.1
 
 [New Features]
-· New IPTV tab: add your own M3U/M3U8 playlist from a URL or a file and play it
-· Browse channels by group, with search and group filtering
+· Background playback: audio keeps playing when you go to the Home Screen or lock your device
+· Play/pause, 15-second skip, and seeking from the Lock Screen and Control Center
+· New Settings screen (gear button on the Library/IPTV screens) to turn background playback on or off
 
 [Note]
 · This app does not provide any channels, programs, or playlists. Please use playlists you created yourself or obtained through a legitimate subscription
-
-[Improvements]
-· Switch between your Library (saved videos) and IPTV with tabs
