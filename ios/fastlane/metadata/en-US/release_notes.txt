@@ -1,12 +1,11 @@
-Version 1.3.0
+Version 1.4.0
 
 [New Features]
-· Swipe down to dismiss the video player
+· New IPTV tab: add your own M3U/M3U8 playlist from a URL or a file and play it
+· Browse channels by group, with search and group filtering
+
+[Note]
+· This app does not provide any channels, programs, or playlists. Please use playlists you created yourself or obtained through a legitimate subscription
 
 [Improvements]
-· Video player now opens in full screen
-
-[Bug Fixes]
-· Fixed an issue where downloaded videos disappeared after restarting the app
-· Fixed an issue where audio continued playing after closing the player
-· Fixed an issue where thumbnails were not displayed for HLS downloads
+· Switch between your Library (saved videos) and IPTV with tabs
