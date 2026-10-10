@@ -10,10 +10,11 @@ iOS video player app (Bundle ID: `com.entaku.smartVideoPlayer`) built with Swift
 
 Open `ios/videoPlayer.xcodeproj` in Xcode and run on a simulator or device. The app requires sample videos (`video1.mp4`, `video2.mp4`) bundled in the project.
 
-Run tests via Xcode Test Navigator, or from the command line:
+Supported Xcode: 27.0 (Xcode 26.5 also builds). Run tests via Xcode Test Navigator, or from the command line:
 ```sh
-xcodebuild test -project ios/videoPlayer.xcodeproj -scheme videoPlayer -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project ios/videoPlayer.xcodeproj -scheme videoPlayer -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
 ```
+If Xcode 27 is installed side by side (not selected via `xcode-select`), prefix with `DEVELOPER_DIR=/Applications/Xcode-27.0.0.app/Contents/Developer`.
 
 ## Fastlane (from `ios/` directory)
 
@@ -82,7 +83,7 @@ Firebase is configured at app launch in `AppDelegate`. `GoogleService-Info.plist
 - 提案がある場合は実装せず、issue コメントか報告として出す
 
 ### ハーネス（検証ゲート）
-- 実装は build / test / lint が緑になるまで自己修正する（コマンド: `xcodebuild test -project ios/videoPlayer.xcodeproj -scheme videoPlayer -destination 'platform=iOS Simulator,name=iPhone 15'`）
+- 実装は build / test / lint が緑になるまで自己修正する（コマンド: `xcodebuild test -project ios/videoPlayer.xcodeproj -scheme videoPlayer -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'`）
 - **緑でない変更を main に入れない**。5回で緑にならなければブランチに残して報告
 - 完了報告には実行した検証コマンドと実出力を含める（「たぶん動く」は完了ではない）
 
