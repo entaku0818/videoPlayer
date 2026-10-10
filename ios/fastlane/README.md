@@ -63,6 +63,14 @@ App Storeにリリース
 
 フルリリース（ビルド + メタデータ + 提出）
 
+### ios submit_review
+
+```sh
+[bundle exec] fastlane ios submit_review
+```
+
+審査提出（ビルド + メタデータ + 提出、手動リリース）
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
