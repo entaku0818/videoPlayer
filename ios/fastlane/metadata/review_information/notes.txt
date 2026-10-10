@@ -1,1 +1,13 @@
+This app is a media player only. It does NOT provide, bundle, link to, or recommend any content, channels, or playlists.
 
+The IPTV tab (new in 1.4.0) lets users play M3U/M3U8 playlists that they own or have legitimately subscribed to. Users must enter their own playlist URL or select their own playlist file; the app ships with no URLs and no default/sample playlists. This disclaimer is shown in the app on the empty state, on the "Add Playlist" screen, and below the playlist list.
+
+How to test:
+1. Open the "IPTV" tab and tap "+" (プレイリストを追加).
+2. Enter the following test playlist URL and tap "URLから追加" (Add from URL):
+   https://videoplayer-3cd35.web.app/review/test-playlist.m3u
+3. Tap the added playlist, then tap a channel to start playback.
+
+The test playlist above was prepared by the developer solely for App Review. It contains only Apple's publicly published HLS example streams (https://developer.apple.com/streaming/examples/) and is not bundled in or linked from the app.
+
+本アプリはプレイヤー機能のみを提供し、コンテンツ・チャンネル・プレイリストを一切提供・同梱・推奨しません。IPTVタブはユーザー自身が所有または正規に契約したM3Uプレイリストを再生するツールです。

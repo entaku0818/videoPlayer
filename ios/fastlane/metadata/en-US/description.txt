@@ -11,6 +11,11 @@ Smart Playback Features
 - Intuitive playback controls (play/pause, volume adjustment)
 - Automatic UI adjustment based on screen brightness
 
+Play Your Own Playlists (IPTV)
+- Add your own M3U/M3U8 playlist from a URL or a file and play it
+- Browse channels by group, with search and filtering
+- Note: This app does not provide any channels, programs, or playlists. Use only playlists you created yourself or obtained through a legitimate subscription
+
 Privacy and Security
 - Secure video storage in local storage
 - Privacy-focused design with no unnecessary external communication

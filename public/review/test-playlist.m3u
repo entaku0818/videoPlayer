@@ -1,0 +1,12 @@
+#EXTM3U
+# App Review test playlist for Smart Player (com.entaku.smartVideoPlayer).
+# Contains only Apple's publicly published HLS example streams (developer.apple.com/streaming/examples/).
+# Not bundled in or linked from the app.
+#EXTINF:-1 group-title="Apple HLS Examples",BipBop Advanced (fMP4)
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+#EXTINF:-1 group-title="Apple HLS Examples",BipBop Advanced (HEVC)
+https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8
+#EXTINF:-1 group-title="Apple HLS Examples (Basic)",BipBop 16x9
+https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8
+#EXTINF:-1 group-title="Apple HLS Examples (Basic)",BipBop 4x3
+https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8

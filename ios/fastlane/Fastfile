@@ -86,4 +86,26 @@ platform :ios do
       force: true
     )
   end
+
+  desc "審査提出（ビルド + メタデータ + 提出、手動リリース）"
+  lane :submit_review do
+    api_key
+    build_app(
+      scheme: "videoPlayer",
+      export_method: "app-store"
+    )
+    deliver(
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      skip_screenshots: true,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        export_compliance_platform: "ios"
+      },
+      run_precheck_before_submit: true,
+      precheck_include_in_app_purchases: false
+    )
+  end
 end
