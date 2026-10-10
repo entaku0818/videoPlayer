@@ -12,6 +12,9 @@ import os
 
 
 struct ContentView: View {
+    @State private var iptvStore = Store(initialState: IPTVPlaylistList.State()) {
+        IPTVPlaylistList()
+    }
 
     init() {
         let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "videoPlayer", category: "FileSystem")
@@ -54,12 +57,22 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VideoPlayerListView(
-            store: Store(
-                initialState: VideoPlayerList.State(),
-                reducer: { VideoPlayerList()._printChanges() }
+        TabView {
+            VideoPlayerListView(
+                store: Store(
+                    initialState: VideoPlayerList.State(),
+                    reducer: { VideoPlayerList()._printChanges() }
+                )
             )
-        )
+            .tabItem {
+                Label("ライブラリ", systemImage: "film")
+            }
+
+            IPTVPlaylistListView(store: iptvStore)
+                .tabItem {
+                    Label("IPTV", systemImage: "tv")
+                }
+        }
     }
 }
 
