@@ -91,6 +91,11 @@ final class BackgroundPlaybackCoordinator: NSObject {
     private let onPause: () -> Void
     private let defaults: UserDefaults
 
+    /// PiP 中はシステムが再生を継続するので映像レイヤーを切り離さない（#14）
+    var isPictureInPictureActive: () -> Bool = { false }
+    /// AVPlayerViewController 以外に player を描画しているレイヤー（自前 PiP 用）。切り離し対象に含める
+    weak var additionalPlayerLayer: AVPlayerLayer?
+
     private var isDetached = false
     private var commandTargets: [(MPRemoteCommand, Any)] = []
     private var statusObservation: NSKeyValueObservation?
@@ -145,10 +150,7 @@ final class BackgroundPlaybackCoordinator: NSObject {
             command.removeTarget(target)
         }
         commandTargets.removeAll()
-        if isDetached {
-            controller?.player = player
-            isDetached = false
-        }
+        reattachVideoLayer()
         if Self.current === self {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
             Self.current = nil
@@ -237,12 +239,13 @@ final class BackgroundPlaybackCoordinator: NSObject {
         let action = BackgroundPlaybackPolicy.onEnterBackground(
             isEnabled: BackgroundPlaybackSettings.isEnabled(defaults),
             isPlaying: player.timeControlStatus != .paused,
-            isPictureInPictureActive: false
+            isPictureInPictureActive: isPictureInPictureActive()
         )
         logger.info("didEnterBackground status=\(self.player.timeControlStatus.rawValue) action=\(String(describing: action))")
         switch action {
         case .detachVideoLayer:
             controller?.player = nil
+            additionalPlayerLayer?.player = nil
             isDetached = true
         case .pause:
             onPause()
@@ -254,10 +257,14 @@ final class BackgroundPlaybackCoordinator: NSObject {
 
     private func willEnterForeground() {
         logger.info("willEnterForeground detached=\(self.isDetached) status=\(self.player.timeControlStatus.rawValue)")
-        if isDetached {
-            controller?.player = player
-            isDetached = false
-        }
+        reattachVideoLayer()
         updateNowPlaying()
+    }
+
+    private func reattachVideoLayer() {
+        guard isDetached else { return }
+        controller?.player = player
+        additionalPlayerLayer?.player = player
+        isDetached = false
     }
 }

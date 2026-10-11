@@ -421,6 +421,7 @@ private struct IPTVPlayerController: UIViewControllerRepresentable {
 
     final class Coordinator {
         var backgroundPlayback: BackgroundPlaybackCoordinator?
+        let pictureInPicture = PictureInPictureTracker()
     }
 
     func makeCoordinator() -> Coordinator {
@@ -431,6 +432,10 @@ private struct IPTVPlayerController: UIViewControllerRepresentable {
         let controller = AVPlayerViewController()
         controller.player = player
         controller.videoGravity = .resizeAspect
+        // 標準コントロールの PiP ボタンに加え、再生中にホームへ戻ったら自動で PiP（iOS 設定の「自動的に開始」に従う）
+        controller.allowsPictureInPicturePlayback = true
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        controller.delegate = context.coordinator.pictureInPicture
         let backgroundPlayback = BackgroundPlaybackCoordinator(
             controller: controller,
             player: player,
@@ -438,6 +443,8 @@ private struct IPTVPlayerController: UIViewControllerRepresentable {
             onPlay: { [weak player] in player?.play() },
             onPause: { [weak player] in player?.pause() }
         )
+        let pictureInPicture = context.coordinator.pictureInPicture
+        backgroundPlayback.isPictureInPictureActive = { [weak pictureInPicture] in pictureInPicture?.isActive ?? false }
         backgroundPlayback.activate()
         context.coordinator.backgroundPlayback = backgroundPlayback
         return controller

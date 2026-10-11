@@ -64,6 +64,13 @@ class VideoPlayerViewController: AVPlayerViewController {
     private let controlsAutoHideInterval: TimeInterval = 3.0
     private var backgroundPlayback: BackgroundPlaybackCoordinator?
 
+    // PiP（#14）: 標準コントロールを隠しているため自前のレイヤーで開始する
+    private let pictureInPictureLayerView = PlayerLayerView()
+    private let pictureInPictureTracker = PictureInPictureTracker()
+    private(set) var pictureInPictureController: AVPictureInPictureController?
+    let pictureInPictureButton = UIButton(type: .system)
+    private var pictureInPicturePossibleObservation: NSKeyValueObservation?
+
     init(player: AVPlayer, nowPlayingTitle: String = "") {
         speedMenu = UIMenu(title: "再生速度", children: [])
 
@@ -72,8 +79,10 @@ class VideoPlayerViewController: AVPlayerViewController {
 
         setupSpeedMenu()
         setupPlayer()
+        setupPictureInPictureLayer(player: player)
         setupCustomControls()
         setupBackgroundPlayback(player: player, title: nowPlayingTitle)
+        setupPictureInPicture()
     }
 
     private func setupBackgroundPlayback(player: AVPlayer, title: String) {
@@ -84,8 +93,79 @@ class VideoPlayerViewController: AVPlayerViewController {
             onPlay: { [weak self] in self?.updatePlayback(isPlaying: true) },
             onPause: { [weak self] in self?.updatePlayback(isPlaying: false) }
         )
+        coordinator.additionalPlayerLayer = pictureInPictureLayerView.playerLayer
+        let pictureInPicture = pictureInPictureTracker
+        coordinator.isPictureInPictureActive = { [weak pictureInPicture] in pictureInPicture?.isActive ?? false }
         coordinator.activate()
         backgroundPlayback = coordinator
+    }
+
+    private func setupPictureInPictureLayer(player: AVPlayer) {
+        // 標準の PiP は使わない（自前の PiP と二重に起動しないように）
+        allowsPictureInPicturePlayback = false
+        // 非対応端末では描画レイヤーを増やさない
+        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+        pictureInPictureLayerView.translatesAutoresizingMaskIntoConstraints = false
+        pictureInPictureLayerView.isUserInteractionEnabled = false
+        pictureInPictureLayerView.playerLayer.player = player
+        pictureInPictureLayerView.playerLayer.videoGravity = .resizeAspect
+        view.addSubview(pictureInPictureLayerView)
+        NSLayoutConstraint.activate([
+            pictureInPictureLayerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pictureInPictureLayerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pictureInPictureLayerView.topAnchor.constraint(equalTo: view.topAnchor),
+            pictureInPictureLayerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func setupPictureInPicture() {
+        pictureInPictureButton.translatesAutoresizingMaskIntoConstraints = false
+        pictureInPictureButton.tintColor = .white
+        pictureInPictureButton.setImage(AVPictureInPictureController.pictureInPictureButtonStartImage, for: .normal)
+        pictureInPictureButton.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        pictureInPictureButton.layer.cornerRadius = 15
+        pictureInPictureButton.accessibilityIdentifier = "pictureInPictureButton"
+        pictureInPictureButton.accessibilityLabel = "ピクチャ・イン・ピクチャ"
+        pictureInPictureButton.addTarget(self, action: #selector(pictureInPictureButtonTapped), for: .touchUpInside)
+        bottomControlsContainer.addSubview(pictureInPictureButton)
+        NSLayoutConstraint.activate([
+            pictureInPictureButton.trailingAnchor.constraint(equalTo: speedButton.leadingAnchor, constant: -12),
+            pictureInPictureButton.centerYAnchor.constraint(equalTo: speedButton.centerYAnchor),
+            pictureInPictureButton.widthAnchor.constraint(equalToConstant: 30),
+            pictureInPictureButton.heightAnchor.constraint(equalToConstant: 30)
+        ])
+
+        guard AVPictureInPictureController.isPictureInPictureSupported(),
+              let controller = AVPictureInPictureController(playerLayer: pictureInPictureLayerView.playerLayer) else {
+            pictureInPictureButton.isHidden = true
+            return
+        }
+        // 再生中にホームへ戻ったら自動で PiP（iOS 設定の「自動的に開始」に従う）
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        controller.delegate = pictureInPictureTracker
+        pictureInPictureTracker.onChange = { [weak self] isActive in
+            let image = isActive
+                ? AVPictureInPictureController.pictureInPictureButtonStopImage
+                : AVPictureInPictureController.pictureInPictureButtonStartImage
+            self?.pictureInPictureButton.setImage(image, for: .normal)
+        }
+        pictureInPictureController = controller
+        pictureInPictureButton.isEnabled = controller.isPictureInPicturePossible
+        pictureInPicturePossibleObservation = controller.observe(
+            \.isPictureInPicturePossible, options: [.new]
+        ) { [weak self] controller, _ in
+            let isPossible = controller.isPictureInPicturePossible
+            DispatchQueue.main.async { self?.pictureInPictureButton.isEnabled = isPossible }
+        }
+    }
+
+    @objc private func pictureInPictureButtonTapped() {
+        guard let controller = pictureInPictureController else { return }
+        if controller.isPictureInPictureActive {
+            controller.stopPictureInPicture()
+        } else {
+            controller.startPictureInPicture()
+        }
     }
 
     override func viewDidLoad() {
@@ -445,6 +525,7 @@ class VideoPlayerViewController: AVPlayerViewController {
         NotificationCenter.default.removeObserver(self)
         stopControlsAutoHideTimer()
         backgroundPlayback?.invalidate()
+        pictureInPicturePossibleObservation?.invalidate()
         logger.debug("VideoPlayerViewController deinitialized")
     }
 
